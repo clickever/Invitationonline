@@ -1,5 +1,6 @@
 import { EventCategory, Template } from "../types";
 import { SEED_TEMPLATES } from "./seedData";
+import { getCustomTemplates, getTemplatePricingOverrides } from "../supabase/storage";
 
 export const CATEGORIES: { id: EventCategory; label: string; icon: string; count: number }[] = [
   { id: "wedding", label: "Wedding", icon: "Ring", count: 5 },
@@ -14,16 +15,39 @@ export const CATEGORIES: { id: EventCategory; label: string; icon: string; count
 ];
 
 export function getAllTemplates(): Template[] {
-  return SEED_TEMPLATES;
+  let custom: Template[] = [];
+  let priceOverrides: Record<string, number> = {};
+  try {
+    custom = getCustomTemplates();
+    priceOverrides = getTemplatePricingOverrides();
+  } catch {
+    // SSR fallback
+  }
+
+  const all = [...custom, ...SEED_TEMPLATES];
+  return all.map((tmpl) => {
+    if (priceOverrides[tmpl.id] !== undefined) {
+      const customPrice = priceOverrides[tmpl.id];
+      return {
+        ...tmpl,
+        price: customPrice,
+        isPremium: customPrice > 0,
+      };
+    }
+    return tmpl;
+  });
 }
 
 export function getTemplatesByCategory(category: string): Template[] {
+  const all = getAllTemplates();
   if (!category || category === "all") {
-    return SEED_TEMPLATES;
+    return all;
   }
-  return SEED_TEMPLATES.filter((t) => t.category.toLowerCase() === category.toLowerCase());
+  return all.filter((t) => t.category.toLowerCase() === category.toLowerCase());
 }
 
 export function getTemplateById(id: string): Template | undefined {
-  return SEED_TEMPLATES.find((t) => t.id === id);
+  const all = getAllTemplates();
+  return all.find((t) => t.id === id);
 }
+

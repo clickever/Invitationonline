@@ -1,10 +1,15 @@
-import { Invitation, RsvpSubmission, UserProfile } from "../types";
+import { Invitation, RsvpSubmission, UserProfile, AdminSettings, PaymentRecord, Template } from "../types";
 import { getTemplateById } from "../templates";
 import { isSupabaseConfigured, supabase } from "./client";
 
 const LOCAL_STORAGE_INVITATIONS_KEY = "invitestudio_invitations";
 const LOCAL_STORAGE_RSVPS_KEY = "invitestudio_rsvps";
 const LOCAL_STORAGE_USER_KEY = "invitestudio_user";
+const LOCAL_STORAGE_USERS_LIST_KEY = "invitestudio_all_users";
+const LOCAL_STORAGE_PAYMENTS_KEY = "invitestudio_payments";
+const LOCAL_STORAGE_ADMIN_SETTINGS_KEY = "invitestudio_admin_settings";
+const LOCAL_STORAGE_CUSTOM_TEMPLATES_KEY = "invitestudio_custom_templates";
+const LOCAL_STORAGE_TEMPLATE_PRICING_KEY = "invitestudio_template_pricing";
 
 export const DEFAULT_DEMO_USER: UserProfile = {
   id: "usr_demo_8829",
@@ -164,14 +169,65 @@ function setLocalItem<T>(key: string, value: T): void {
   }
 }
 
-// User Profile
+// User Profile (No more automatic demo user: returns null if not logged in)
 export function getCurrentUser(): UserProfile | null {
-  return getLocalItem<UserProfile | null>(LOCAL_STORAGE_USER_KEY, DEFAULT_DEMO_USER);
+  return getLocalItem<UserProfile | null>(LOCAL_STORAGE_USER_KEY, null);
 }
 
 export function setCurrentUser(user: UserProfile | null): void {
   setLocalItem(LOCAL_STORAGE_USER_KEY, user);
 }
+
+export function getAllRegisteredUsers(): UserProfile[] {
+  return getLocalItem<UserProfile[]>(LOCAL_STORAGE_USERS_LIST_KEY, []);
+}
+
+export function registerUser(fullName: string, email: string, password?: string): { success: boolean; user?: UserProfile; error?: string } {
+  const cleanEmail = email.trim().toLowerCase();
+  const users = getAllRegisteredUsers();
+  if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+    return { success: false, error: "An account with this email address already exists. Please log in." };
+  }
+  const newUser: UserProfile = {
+    id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    email: cleanEmail,
+    fullName: fullName.trim(),
+    password: password || "",
+    avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim())}`,
+    plan: "free",
+    createdAt: new Date().toISOString(),
+  };
+  users.push(newUser);
+  setLocalItem(LOCAL_STORAGE_USERS_LIST_KEY, users);
+  setCurrentUser(newUser);
+  return { success: true, user: newUser };
+}
+
+export function loginUser(email: string, password?: string): { success: boolean; user?: UserProfile; error?: string } {
+  const cleanEmail = email.trim().toLowerCase();
+  const users = getAllRegisteredUsers();
+  const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+  
+  if (!user) {
+    // If not found in local users list, auto-create a user profile for valid email to keep onboarding seamless
+    const namePart = cleanEmail.split("@")[0];
+    const capitalized = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    return registerUser(capitalized, cleanEmail, password);
+  }
+
+  // Password check if password was set
+  if (user.password && password && user.password !== password) {
+    return { success: false, error: "Invalid password. Please try again." };
+  }
+
+  setCurrentUser(user);
+  return { success: true, user };
+}
+
+export function logoutUser(): void {
+  setCurrentUser(null);
+}
+
 
 // Invitations Store
 export async function getAllUserInvitations(userId?: string): Promise<Invitation[]> {
@@ -476,3 +532,158 @@ function mapSupabaseInvitation(row: any): Invitation {
     updatedAt: row.updated_at,
   };
 }
+
+// ----------------------------------------------------------------------------
+// Admin Backend & Dynamic UPI Payment Engine
+// ----------------------------------------------------------------------------
+
+export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
+  upiId: "invitestudio@upi",
+  payeeName: "InviteStudio Events",
+  defaultPrice: 1100,
+  currency: "INR",
+  adminPin: "admin123",
+};
+
+export function getAdminSettings(): AdminSettings {
+  return getLocalItem<AdminSettings>(LOCAL_STORAGE_ADMIN_SETTINGS_KEY, DEFAULT_ADMIN_SETTINGS);
+}
+
+export function saveAdminSettings(settings: Partial<AdminSettings>): AdminSettings {
+  const current = getAdminSettings();
+  const updated = { ...current, ...settings };
+  setLocalItem(LOCAL_STORAGE_ADMIN_SETTINGS_KEY, updated);
+  return updated;
+}
+
+export function getAllPayments(): PaymentRecord[] {
+  return getLocalItem<PaymentRecord[]>(LOCAL_STORAGE_PAYMENTS_KEY, []);
+}
+
+export async function createUpiPayment(data: {
+  userId: string;
+  userEmail?: string;
+  invitationId: string;
+  invitationTitle: string;
+  invitationSlug: string;
+  amount: number;
+  upiId: string;
+  utrNumber: string;
+  status?: "pending" | "completed" | "rejected";
+}): Promise<PaymentRecord> {
+  const payments = getAllPayments();
+  const newRecord: PaymentRecord = {
+    id: `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    userId: data.userId,
+    userEmail: data.userEmail || "",
+    invitationId: data.invitationId,
+    invitationTitle: data.invitationTitle,
+    invitationSlug: data.invitationSlug,
+    amount: data.amount,
+    currency: "INR",
+    status: data.status || "completed",
+    provider: "upi",
+    upiId: data.upiId,
+    utrNumber: data.utrNumber,
+    createdAt: new Date().toISOString(),
+  };
+  payments.unshift(newRecord);
+  setLocalItem(LOCAL_STORAGE_PAYMENTS_KEY, payments);
+
+  // Provisional publish: unlock invitation so host can preview live while admin verifies
+  const invite = await getInvitationById(data.invitationId);
+  if (invite) {
+    await saveInvitation({
+      ...invite,
+      isPublished: true,
+      isPremium: true,
+      settings: {
+        ...invite.settings,
+        isWatermarkHidden: true,
+      },
+    });
+  }
+
+  return newRecord;
+}
+
+export async function updatePaymentStatus(
+  paymentId: string,
+  status: "completed" | "rejected" | "pending"
+): Promise<boolean> {
+  const payments = getAllPayments();
+  const target = payments.find((p) => p.id === paymentId);
+  if (!target) return false;
+
+  target.status = status;
+  if (status === "completed") {
+    target.verifiedAt = new Date().toISOString();
+    if (target.invitationId) {
+      const invite = await getInvitationById(target.invitationId);
+      if (invite) {
+        await saveInvitation({
+          ...invite,
+          isPublished: true,
+          isPremium: true,
+          settings: {
+            ...invite.settings,
+            isWatermarkHidden: true,
+          },
+        });
+      }
+    }
+  } else if (status === "rejected") {
+    if (target.invitationId) {
+      const invite = await getInvitationById(target.invitationId);
+      if (invite) {
+        await saveInvitation({
+          ...invite,
+          isPremium: false,
+          settings: {
+            ...invite.settings,
+            isWatermarkHidden: false,
+          },
+        });
+      }
+    }
+  }
+
+  setLocalItem(LOCAL_STORAGE_PAYMENTS_KEY, payments);
+  return true;
+}
+
+// Custom Templates added by Admin
+export function getCustomTemplates(): Template[] {
+  return getLocalItem<Template[]>(LOCAL_STORAGE_CUSTOM_TEMPLATES_KEY, []);
+}
+
+export function saveCustomTemplate(template: Template): Template {
+  const custom = getCustomTemplates();
+  const existingIdx = custom.findIndex((t) => t.id === template.id);
+  if (existingIdx >= 0) {
+    custom[existingIdx] = template;
+  } else {
+    custom.unshift(template);
+  }
+  setLocalItem(LOCAL_STORAGE_CUSTOM_TEMPLATES_KEY, custom);
+  return template;
+}
+
+export function deleteCustomTemplate(id: string): boolean {
+  let custom = getCustomTemplates();
+  custom = custom.filter((t) => t.id !== id);
+  setLocalItem(LOCAL_STORAGE_CUSTOM_TEMPLATES_KEY, custom);
+  return true;
+}
+
+// Template Pricing Overrides
+export function getTemplatePricingOverrides(): Record<string, number> {
+  return getLocalItem<Record<string, number>>(LOCAL_STORAGE_TEMPLATE_PRICING_KEY, {});
+}
+
+export function setTemplatePrice(templateId: string, price: number): void {
+  const overrides = getTemplatePricingOverrides();
+  overrides[templateId] = price;
+  setLocalItem(LOCAL_STORAGE_TEMPLATE_PRICING_KEY, overrides);
+}
+

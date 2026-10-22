@@ -65,6 +65,44 @@ export default function CanvasStage({
     setDraggingId(null);
   };
 
+  const handleTouchStart = (e: React.TouchEvent, element: CanvasElement) => {
+    e.stopPropagation();
+    onSelectElementId(element.id);
+    if (!canvasRef.current || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const touchX = (touch.clientX - rect.left) / zoom;
+    const touchY = (touch.clientY - rect.top) / zoom;
+    setDraggingId(element.id);
+    setDragOffset({
+      x: touchX - element.x,
+      y: touchY - element.y,
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!draggingId || !canvasRef.current || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const touchX = (touch.clientX - rect.left) / zoom;
+    const touchY = (touch.clientY - rect.top) / zoom;
+    const currentElement = (invitation.elements || []).find((el) => el.id === draggingId);
+    if (!currentElement) return;
+
+    const newX = Math.max(0, Math.min(1080 - currentElement.width, Math.round(touchX - dragOffset.x)));
+    const newY = Math.max(0, Math.min(1920 - currentElement.height, Math.round(touchY - dragOffset.y)));
+
+    onUpdateElement({
+      ...currentElement,
+      x: newX,
+      y: newY,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setDraggingId(null);
+  };
+
   const renderElement = (el: CanvasElement) => {
     const isSelected = selectedElementId === el.id;
 
@@ -192,7 +230,8 @@ export default function CanvasStage({
         key={el.id}
         style={style}
         onMouseDown={(e) => handleMouseDown(e, el)}
-        className={`group transition-shadow ${
+        onTouchStart={(e) => handleTouchStart(e, el)}
+        className={`group transition-shadow touch-none ${
           isSelected
             ? "ring-2 ring-amber-500 ring-offset-2 ring-offset-transparent shadow-lg"
             : "hover:ring-1 hover:ring-amber-400/50"
@@ -215,10 +254,12 @@ export default function CanvasStage({
 
   return (
     <div
-      className="flex-1 bg-stone-100 flex items-center justify-center p-4 sm:p-8 overflow-auto h-[calc(100vh-4rem)] select-none"
+      className="flex-1 bg-stone-100 flex items-center justify-center p-2 sm:p-8 overflow-auto h-[calc(100vh-4rem)] select-none touch-pan-y"
       onClick={() => onSelectElementId(null)}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Visual Canvas Wrapper scaled by zoom */}
       <div

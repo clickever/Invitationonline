@@ -7,7 +7,7 @@ import { CanvasElement, Invitation } from "@/lib/types";
 import { 
   getInvitationById, 
   saveInvitation, 
-  DEFAULT_DEMO_USER 
+  getCurrentUser 
 } from "@/lib/supabase/storage";
 import { getTemplateById } from "@/lib/templates";
 import { generateSlug } from "@/lib/utils";
@@ -18,6 +18,7 @@ import CanvasStage from "@/components/editor/CanvasStage";
 import MobileToolbar from "@/components/editor/MobileToolbar";
 import PreviewModal from "@/components/editor/PreviewModal";
 import ShareModal from "@/components/invitation/ShareModal";
+import UpiPaymentModal from "@/components/payments/UpiPaymentModal";
 
 export default function VisualEditorPage() {
   const params = useParams();
@@ -31,6 +32,7 @@ export default function VisualEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [upiModalOpen, setUpiModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Undo / Redo History Stack
@@ -61,15 +63,21 @@ export default function VisualEditorPage() {
     const init = async () => {
       setLoading(true);
       try {
+        const user = getCurrentUser();
+        if (!user) {
+          router.push(`/login?redirect=/editor/${id}`);
+          return;
+        }
+
         let invite = await getInvitationById(id);
 
         // If this ID is a template ID, initialize a new invitation from it
-        if (!invite && id.startsWith("wedding-") || id.startsWith("birthday-") || id.startsWith("engagement-") || id.startsWith("babyshower-") || id.startsWith("housewarming-") || id.startsWith("anniversary-")) {
+        if (!invite && (id.startsWith("wedding-") || id.startsWith("birthday-") || id.startsWith("engagement-") || id.startsWith("babyshower-") || id.startsWith("housewarming-") || id.startsWith("anniversary-"))) {
           const tpl = getTemplateById(id);
           if (tpl) {
             invite = {
               id: `inv_${Date.now()}`,
-              userId: DEFAULT_DEMO_USER.id,
+              userId: user.id,
               templateId: tpl.id,
               slug: generateSlug(tpl.name),
               title: tpl.name,
@@ -116,19 +124,27 @@ export default function VisualEditorPage() {
     };
 
     init();
-  }, [id]);
+  }, [id, router]);
 
-  // Adjust zoom for smaller screens
+  // Adjust zoom automatically for mobile screen width
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (window.innerWidth < 768) {
-        setZoom(0.32);
-      } else if (window.innerWidth < 1280) {
-        setZoom(0.38);
-      } else {
-        setZoom(0.44);
+    const handleResize = () => {
+      if (typeof window !== "undefined") {
+        if (window.innerWidth < 640) {
+          // Responsive fit scale for mobile viewports
+          const fitScale = Number(((window.innerWidth - 24) / 1080).toFixed(2));
+          setZoom(Math.max(0.28, Math.min(fitScale, 0.36)));
+        } else if (window.innerWidth < 1024) {
+          setZoom(0.38);
+        } else {
+          setZoom(0.44);
+        }
       }
-    }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Keyboard shortcuts for Undo/Redo/Save
@@ -258,6 +274,14 @@ export default function VisualEditorPage() {
 
   const handlePublish = async () => {
     if (!invitation) return;
+
+    // Check if publication requires payment (isPremium and not yet published)
+    if (invitation.isPremium && !invitation.isPublished) {
+      setUpiModalOpen(true);
+      return;
+    }
+
+    // Direct publish for 3 free templates or previously published
     setIsSaving(true);
     try {
       const published = {
@@ -270,6 +294,27 @@ export default function VisualEditorPage() {
       setShareOpen(true);
     } catch (err) {
       console.error("Publish error:", err);
+      showToast("Failed to publish invitation.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePaymentSuccess = async () => {
+    if (!invitation) return;
+    setUpiModalOpen(false);
+    setIsSaving(true);
+    try {
+      const published = {
+        ...invitation,
+        isPublished: true,
+      };
+      await saveInvitation(published);
+      setInvitation(published);
+      showToast("🎉 Payment confirmed! Your invitation is now published live!");
+      setShareOpen(true);
+    } catch (err) {
+      console.error("Publish after payment error:", err);
     } finally {
       setIsSaving(false);
     }
@@ -374,6 +419,8 @@ export default function VisualEditorPage() {
         onSelectElementId={setSelectedElementId}
         onPreview={() => setPreviewOpen(true)}
         onSave={handleSave}
+        onPublish={handlePublish}
+        isPublished={invitation.isPublished}
       />
 
       {/* Fullscreen Preview Modal */}
@@ -391,6 +438,14 @@ export default function VisualEditorPage() {
         title={invitation.title}
         shareUrl={publicShareUrl}
         themeColor={invitation.settings?.themeColor}
+      />
+
+      {/* Dynamic UPI Payment Modal */}
+      <UpiPaymentModal
+        isOpen={upiModalOpen}
+        onClose={() => setUpiModalOpen(false)}
+        invitation={invitation}
+        onSuccess={handlePaymentSuccess}
       />
     </div>
   );

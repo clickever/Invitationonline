@@ -181,14 +181,24 @@ export default function PublicInvitationRenderer({ invitation }: PublicInvitatio
   const contentElements = invitation.elements?.filter((el) => el.type !== "shape") || [];
 
   return (
-    <div className="min-h-screen bg-stone-900 py-4 sm:py-10 px-0 sm:px-4 flex flex-col items-center justify-center">
+    <div 
+      className="min-h-screen py-4 sm:py-10 px-0 sm:px-4 flex flex-col items-center justify-center relative overflow-hidden"
+      style={{
+        background: `radial-gradient(circle at 50% 20%, ${themeColor}33 0%, #12131a 50%, #090a0f 100%)`
+      }}
+    >
       {/* Background Music Player */}
       {invitation.settings?.enableMusic && (
         <MusicPlayer musicUrl={invitation.settings.musicUrl} themeColor={themeColor} />
       )}
 
       {/* Main Invitation Card Stage */}
-      <div className="w-full max-w-md mx-auto relative rounded-none sm:rounded-[36px] overflow-hidden shadow-2xl transition-all">
+      <div 
+        className="w-full max-w-md mx-auto relative rounded-none sm:rounded-[36px] overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] transition-all border border-white/10"
+        style={{
+          boxShadow: `0 20px 50px -10px ${themeColor}33, 0 0 0 1px ${themeColor}22`
+        }}
+      >
         {/* Frame Layer */}
         <div
           className="relative min-h-[92vh] sm:min-h-[850px] p-6 sm:p-8 flex flex-col justify-between"
@@ -210,8 +220,74 @@ export default function PublicInvitationRenderer({ invitation }: PublicInvitatio
           </div>
 
           {/* Dynamic Content Layers */}
-          <div className="relative z-10 my-auto py-6 space-y-3.5 text-center flex flex-col items-center">
+          <div className="relative z-10 my-auto py-6 space-y-4 text-center flex flex-col items-center">
             {contentElements.map(renderElement)}
+          </div>
+
+          {/* Our Story / Warm Welcome Note */}
+          {(invitation.settings?.storyText || invitation.description) && (
+            <div className="relative z-10 my-4 mx-2 p-5 rounded-2xl bg-white/70 backdrop-blur-md border border-stone-200/80 shadow-xs text-center space-y-2">
+              <span className="text-[10px] font-bold tracking-widest uppercase text-amber-800" style={{ color: themeColor }}>
+                {invitation.settings?.storyTitle || "A Note From The Hosts"}
+              </span>
+              <p className="font-serif italic text-xs text-stone-700 leading-relaxed max-w-xs mx-auto">
+                &quot;{invitation.settings?.storyText || invitation.description}&quot;
+              </p>
+            </div>
+          )}
+
+          {/* Event Schedule / Program Timeline */}
+          {invitation.settings?.schedule && invitation.settings.schedule.length > 0 && (
+            <div className="relative z-10 my-4 mx-2 p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-stone-200/80 shadow-xs space-y-3">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="h-[1px] w-6 bg-stone-300" />
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-700" style={{ color: themeColor }}>
+                  Order of Events
+                </span>
+                <span className="h-[1px] w-6 bg-stone-300" />
+              </div>
+              <div className="space-y-3">
+                {invitation.settings.schedule.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-3 text-left">
+                    <span 
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono shrink-0 shadow-xs"
+                      style={{ backgroundColor: `${themeColor}22`, color: themeColor }}
+                    >
+                      {item.time}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-stone-900 truncate">{item.title}</div>
+                      {item.description && (
+                        <div className="text-[11px] text-stone-500 leading-snug">{item.description}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Dress Code Pill */}
+          {invitation.settings?.dressCode && (
+            <div className="relative z-10 my-2 mx-auto inline-flex items-center gap-2 rounded-full px-4 py-1.5 bg-white/80 backdrop-blur-xs border border-stone-200 shadow-xs text-xs text-stone-700">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Dress Code:</span>
+              <span className="font-semibold text-stone-800">{invitation.settings.dressCode}</span>
+            </div>
+          )}
+
+          {/* Host WhatsApp Connect CTA */}
+          <div className="relative z-10 my-3 flex justify-center px-4">
+            <a
+              href={`https://wa.me/${invitation.settings?.contactPhone ? invitation.settings.contactPhone.replace(/\D/g, "") : ""}?text=${encodeURIComponent(
+                `Hello! I received your invitation for "${invitation.title}" and would love to connect!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full max-w-xs rounded-full py-2.5 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center justify-center gap-2 transition active:scale-95"
+            >
+              <MessageCircle className="h-4 w-4 fill-emerald-600 text-white" />
+              <span>Connect with Host on WhatsApp</span>
+            </a>
           </div>
 
           {/* Interactive Venue & Calendar Widget Section */}

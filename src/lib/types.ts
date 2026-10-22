@@ -121,6 +121,7 @@ export interface Template {
   category: EventCategory;
   description: string;
   isPremium: boolean;
+  price?: number;
   thumbnailUrl: string;
   canvas: CanvasConfig;
   background: BackgroundConfig;
@@ -128,6 +129,14 @@ export interface Template {
   themeColors?: TemplateThemeColors;
   fontSettings?: TemplateFontSettings;
   tags?: string[];
+}
+
+export interface ScheduleItem {
+  id: string;
+  time: string;
+  title: string;
+  description?: string;
+  icon?: string;
 }
 
 export interface InvitationSettings {
@@ -142,6 +151,10 @@ export interface InvitationSettings {
   themeColor?: string;
   whatsappPhone?: string;
   contactPhone?: string;
+  dressCode?: string;
+  storyTitle?: string;
+  storyText?: string;
+  schedule?: ScheduleItem[];
 }
 
 export interface InvitationImage {
@@ -197,6 +210,7 @@ export interface UserProfile {
   id: string;
   email: string;
   fullName: string;
+  password?: string;
   avatarUrl?: string;
   plan: 'free' | 'premium' | 'pro';
   createdAt: string;
@@ -205,12 +219,30 @@ export interface UserProfile {
 export interface PaymentRecord {
   id: string;
   userId: string;
+  userEmail?: string;
   invitationId?: string;
+  invitationTitle?: string;
+  invitationSlug?: string;
   amount: number;
   currency: string;
-  status: 'pending' | 'completed' | 'failed';
-  provider: 'razorpay' | 'mock';
+  status: 'pending' | 'completed' | 'failed' | 'rejected';
+  provider: 'upi' | 'razorpay' | 'mock';
   orderId?: string;
   paymentId?: string;
+  upiId?: string;
+  utrNumber?: string;
   createdAt: string;
+  verifiedAt?: string;
 }
+
+export interface AdminSettings {
+  upiId: string;
+  payeeName: string;
+  defaultPrice: number;
+  defaultPublicationPrice?: number;
+  currency?: string;
+  adminPin: string;
+  updatedAt?: string;
+}
+
+

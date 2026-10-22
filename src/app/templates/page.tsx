@@ -190,13 +190,17 @@ function TemplateGalleryContent() {
                   />
 
                   {/* Top Badges */}
-                  <div className="absolute top-4 left-4 flex gap-2">
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5 flex-wrap">
                     <span className="rounded-full bg-stone-900/80 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                       {template.category.replace("_", " ")}
                     </span>
-                    {template.isPremium && (
-                      <span className="rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-900 shadow">
-                        Premium
+                    {template.isPremium ? (
+                      <span className="rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-stone-900 shadow">
+                        ★ ₹{template.price ?? 1100}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-emerald-500 text-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider shadow">
+                        FREE
                       </span>
                     )}
                   </div>
@@ -233,21 +237,22 @@ function TemplateGalleryContent() {
                   </div>
 
                   <div className="mt-5 pt-3 border-t border-stone-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {(template.tags || []).slice(0, 2).map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[10px] font-medium bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md"
-                        >
-                          #{tag}
+                    <div>
+                      {template.isPremium ? (
+                        <span className="text-xs font-bold text-amber-950 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                          ₹{template.price ?? 1100} <span className="text-[10px] font-normal text-stone-500">/ publish</span>
                         </span>
-                      ))}
+                      ) : (
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Free
+                        </span>
+                      )}
                     </div>
                     <Link
                       href={`/editor/${template.id}`}
                       className="text-xs font-bold text-amber-700 hover:text-amber-900 flex items-center gap-1"
                     >
-                      <span>Create</span>
+                      <span>Customize</span>
                       <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
@@ -266,9 +271,15 @@ function TemplateGalleryContent() {
                   <h3 className="font-serif text-base font-bold text-stone-900">
                     {previewTemplate.name}
                   </h3>
-                  <span className="text-[10px] uppercase tracking-wider text-amber-700 font-bold">
-                    {previewTemplate.category.replace("_", " ")}
-                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] uppercase tracking-wider text-amber-700 font-bold">
+                      {previewTemplate.category.replace("_", " ")}
+                    </span>
+                    <span className="text-stone-300">•</span>
+                    <span className="text-xs font-bold text-stone-700">
+                      {previewTemplate.isPremium ? `₹${previewTemplate.price ?? 1100} single publication` : "100% Free"}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={() => setPreviewTemplate(null)}
@@ -292,7 +303,7 @@ function TemplateGalleryContent() {
                     href={`/editor/${previewTemplate.id}`}
                     className="w-full rounded-2xl bg-amber-600 py-3 text-xs font-bold text-white shadow hover:bg-amber-700 transition"
                   >
-                    Use This Template in Studio
+                    {previewTemplate.isPremium ? `Customize (₹${previewTemplate.price ?? 1100} to Publish)` : "Customize Free Template"}
                   </Link>
                 </div>
               </div>

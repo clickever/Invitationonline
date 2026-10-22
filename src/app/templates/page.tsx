@@ -194,6 +194,11 @@ function TemplateGalleryContent() {
                     <span className="rounded-full bg-stone-900/80 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                       {template.category.replace("_", " ")}
                     </span>
+                    {template.tags?.includes("envelope") && (
+                      <span className="rounded-full bg-rose-950/85 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-200 border border-rose-400/30">
+                        ✉ Wax Seal
+                      </span>
+                    )}
                     {template.isPremium ? (
                       <span className="rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-stone-900 shadow">
                         ★ ₹{template.price ?? 1100}

@@ -139,6 +139,21 @@ export interface ScheduleItem {
   icon?: string;
 }
 
+export interface VenueEventItem {
+  id: string;
+  tag: string;
+  dateBadge: string;
+  name: string;
+  timeAndPlace: string;
+  mapUrl?: string;
+}
+
+export interface ContactItem {
+  id: string;
+  label: string;
+  phone: string;
+}
+
 export interface InvitationSettings {
   enableCountdown: boolean;
   enableRsvp: boolean;
@@ -155,6 +170,36 @@ export interface InvitationSettings {
   storyTitle?: string;
   storyText?: string;
   schedule?: ScheduleItem[];
+
+  // Palace luxury template fields
+  layoutStyle?: 'standard' | 'palace';
+  palaceVariant?: 'burgundy' | 'emerald' | 'rosegold' | 'sapphire';
+  symbol?: string;
+  familyHostName?: string;
+  ceremonyName?: string;
+  ceremonyTime?: string;
+  ceremonyVenue?: string;
+  ceremonyLocation?: string;
+  ceremonyMapUrl?: string;
+  receptionName?: string;
+  receptionDate?: string;
+  receptionTime?: string;
+  receptionVenue?: string;
+  receptionAddress?: string;
+  receptionMapUrl?: string;
+  isDualCouple?: boolean;
+  couple2GroomName?: string;
+  couple2BrideName?: string;
+  couple2Photo?: string;
+  couple2Parents?: string;
+  couple2CeremonyName?: string;
+  couple2CeremonyDate?: string;
+  couple2CeremonyTime?: string;
+  couple2CeremonyVenue?: string;
+  couple2CeremonyLocation?: string;
+  couple2CeremonyMapUrl?: string;
+  venueEvents?: VenueEventItem[];
+  contacts?: ContactItem[];
 }
 
 export interface InvitationImage {

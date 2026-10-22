@@ -3,7 +3,7 @@ import { SEED_TEMPLATES } from "./seedData";
 import { getCustomTemplates, getTemplatePricingOverrides } from "../supabase/storage";
 
 export const CATEGORIES: { id: EventCategory; label: string; icon: string; count: number }[] = [
-  { id: "wedding", label: "Wedding", icon: "Ring", count: 5 },
+  { id: "wedding", label: "Wedding", icon: "Ring", count: 9 },
   { id: "engagement", label: "Engagement", icon: "Gem", count: 3 },
   { id: "birthday", label: "Birthday", icon: "Cake", count: 4 },
   { id: "anniversary", label: "Anniversary", icon: "Sparkles", count: 1 },

@@ -62,9 +62,20 @@ export default function CategoryTemplatesPage() {
                     alt={template.name}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  {template.isPremium && (
-                    <span className="absolute top-4 right-4 rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold text-stone-950 uppercase shadow">
-                      Premium
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5 flex-wrap">
+                    {template.tags?.includes("envelope") && (
+                      <span className="rounded-full bg-rose-950/85 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-200 border border-rose-400/30">
+                        ✉ Wax Seal
+                      </span>
+                    )}
+                  </div>
+                  {template.isPremium ? (
+                    <span className="absolute top-4 right-4 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-stone-900 shadow">
+                      ★ ₹{template.price ?? 1100}
+                    </span>
+                  ) : (
+                    <span className="absolute top-4 right-4 rounded-full bg-emerald-500 text-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider shadow">
+                      FREE
                     </span>
                   )}
                 </div>

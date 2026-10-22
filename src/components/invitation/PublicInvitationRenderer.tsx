@@ -19,12 +19,23 @@ import LocationMap from "./LocationMap";
 import PhotoGallery from "./PhotoGallery";
 import MusicPlayer from "./MusicPlayer";
 import Watermark from "./Watermark";
+import PalaceInvitationRenderer from "./PalaceInvitationRenderer";
 
 interface PublicInvitationRendererProps {
   invitation: Invitation;
 }
 
 export default function PublicInvitationRenderer({ invitation }: PublicInvitationRendererProps) {
+  // If this invitation is a Palace royal luxury template, render the PalaceInvitationRenderer
+  const isPalaceTemplate = 
+    invitation.templateId?.startsWith("wedding-palace") ||
+    invitation.settings?.layoutStyle === "palace" ||
+    invitation.title?.toLowerCase().includes("palace");
+
+  if (isPalaceTemplate) {
+    return <PalaceInvitationRenderer invitation={invitation} />;
+  }
+
   const [rsvpModalOpen, setRsvpModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
 

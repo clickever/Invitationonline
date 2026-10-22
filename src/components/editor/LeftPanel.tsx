@@ -19,9 +19,12 @@ import {
   Trash2,
   Camera,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Crown,
+  Phone
 } from "lucide-react";
 import { CanvasElement, Invitation, InvitationSettings } from "@/lib/types";
+import { PALACE_THEMES } from "../invitation/PalaceInvitationRenderer";
 
 interface LeftPanelProps {
   invitation: Invitation;
@@ -414,6 +417,386 @@ export default function LeftPanel({
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
+
+            {/* Palace Luxury Edition Specifics */}
+            {(invitation.templateId?.startsWith("wedding-palace") || invitation.settings?.layoutStyle === "palace") && (
+              <div className="pt-4 border-t border-amber-200/80 space-y-4">
+                <div className="rounded-2xl bg-amber-50/70 border border-amber-200 p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                    <Crown className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Palace Royal Edition Settings</span>
+                  </div>
+                  <p className="text-[10px] text-amber-800/80">
+                    Customise sacred ceremony, grand evening reception, dual couple options, and host hotlines.
+                  </p>
+                </div>
+
+                {/* Auspicious Symbol */}
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">Auspicious Symbol</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["ॐ", "ੴ", "✝", "☪", "✦", "✨"].map((sym) => (
+                      <button
+                        key={sym}
+                        type="button"
+                        onClick={() =>
+                          onUpdateField("settings", {
+                            ...invitation.settings,
+                            symbol: sym,
+                          })
+                        }
+                        className={`w-8 h-8 rounded-lg border text-sm font-serif flex items-center justify-center transition ${
+                          (invitation.settings?.symbol || "ॐ") === sym
+                            ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                            : "bg-white text-stone-700 border-stone-200 hover:border-stone-300"
+                        }`}
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                    <input
+                      type="text"
+                      placeholder="Custom"
+                      value={invitation.settings?.symbol || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          symbol: e.target.value,
+                        })
+                      }
+                      className="w-16 rounded-lg border border-stone-200 px-2 text-xs text-center focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Family Host Banner */}
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">Family Host Banner</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Shanmughan Family"
+                    value={invitation.settings?.familyHostName || ""}
+                    onChange={(e) =>
+                      onUpdateField("settings", {
+                        ...invitation.settings,
+                        familyHostName: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Sacred Ceremony Muhurtham Details */}
+                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+                  <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider block">
+                    Sacred Ceremony (Muhurtham)
+                  </span>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Ceremony Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Thaalikettu / Muhurtham"
+                      value={invitation.settings?.ceremonyName || "Thaalikettu"}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          ceremonyName: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Muhurtham Time Window</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8:15 AM — 9:15 AM"
+                      value={invitation.settings?.ceremonyTime || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          ceremonyTime: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Temple / Venue Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Guruvayoor Sreekrishnan Temple"
+                      value={invitation.settings?.ceremonyVenue || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          ceremonyVenue: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Temple Google Maps URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://maps.google.com/..."
+                      value={invitation.settings?.ceremonyMapUrl || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          ceremonyMapUrl: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Dual Wedding Toggle */}
+                <div className="pt-2">
+                  <label className="flex items-center justify-between rounded-xl border border-stone-200 p-2.5 hover:bg-stone-50 cursor-pointer">
+                    <div>
+                      <div className="text-xs font-bold text-stone-800">Dual Wedding (Two Couples)</div>
+                      <div className="text-[10px] text-stone-500">Feature two couples simultaneously</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={!!invitation.settings?.isDualCouple}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          isDualCouple: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 rounded accent-amber-600"
+                    />
+                  </label>
+                </div>
+
+                {/* Couple 2 Inputs if Dual Couple */}
+                {invitation.settings?.isDualCouple && (
+                  <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+                    <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider block">
+                      Couple Two Details
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-medium text-stone-600 mb-1">Groom Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Akheesh"
+                          value={invitation.settings?.couple2GroomName || ""}
+                          onChange={(e) =>
+                            onUpdateField("settings", {
+                              ...invitation.settings,
+                              couple2GroomName: e.target.value,
+                            })
+                          }
+                          className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-medium text-stone-600 mb-1">Bride Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Aiswarya"
+                          value={invitation.settings?.couple2BrideName || ""}
+                          onChange={(e) =>
+                            onUpdateField("settings", {
+                              ...invitation.settings,
+                              couple2BrideName: e.target.value,
+                            })
+                          }
+                          className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-medium text-stone-600 mb-1">Couple 2 Parents</label>
+                      <input
+                        type="text"
+                        placeholder="Daughter of Mr. Sajeev & Mrs. Neena Sajeev"
+                        value={invitation.settings?.couple2Parents || ""}
+                        onChange={(e) =>
+                          onUpdateField("settings", {
+                            ...invitation.settings,
+                            couple2Parents: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-medium text-stone-600 mb-1">Couple 2 Ceremony Temple</label>
+                      <input
+                        type="text"
+                        placeholder="Valiyalukkal Devi Temple"
+                        value={invitation.settings?.couple2CeremonyVenue || ""}
+                        onChange={(e) =>
+                          onUpdateField("settings", {
+                            ...invitation.settings,
+                            couple2CeremonyVenue: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-medium text-stone-600 mb-1">Couple 2 Ceremony Time</label>
+                      <input
+                        type="text"
+                        placeholder="9:00 AM — 9:30 AM"
+                        value={invitation.settings?.couple2CeremonyTime || ""}
+                        onChange={(e) =>
+                          onUpdateField("settings", {
+                            ...invitation.settings,
+                            couple2CeremonyTime: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Grand Evening Reception */}
+                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+                  <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider block">
+                    Grand Evening Reception
+                  </span>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Reception Subtitle</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. An Evening of Joy"
+                      value={invitation.settings?.receptionName || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          receptionName: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-medium text-stone-600 mb-1">Reception Date</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. November 9th, 2026"
+                        value={invitation.settings?.receptionDate || ""}
+                        onChange={(e) =>
+                          onUpdateField("settings", {
+                            ...invitation.settings,
+                            receptionDate: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-medium text-stone-600 mb-1">Reception Time</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 5:00 PM — 9:00 PM"
+                        value={invitation.settings?.receptionTime || ""}
+                        onChange={(e) =>
+                          onUpdateField("settings", {
+                            ...invitation.settings,
+                            receptionTime: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Auditorium / Venue Name</label>
+                    <input
+                      type="text"
+                      placeholder="Golden Palace Auditorium"
+                      value={invitation.settings?.receptionVenue || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          receptionVenue: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Auditorium Address</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Convention Center, Choondal, Thrissur–Kunnamkulam Road"
+                      value={invitation.settings?.receptionAddress || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          receptionAddress: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Auditorium Google Maps URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://maps.google.com/..."
+                      value={invitation.settings?.receptionMapUrl || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          receptionMapUrl: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Direct Host Hotlines */}
+                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+                  <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider block">
+                    Host Hotline Phone Numbers
+                  </span>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Host 1 (Call & WhatsApp)</label>
+                    <input
+                      type="tel"
+                      placeholder="+91 6282 342 270"
+                      value={invitation.settings?.contactPhone || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          contactPhone: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-stone-600 mb-1">Host 2 (Call & WhatsApp)</label>
+                    <input
+                      type="tel"
+                      placeholder="+91 9496 278 238"
+                      value={invitation.settings?.whatsappPhone || ""}
+                      onChange={(e) =>
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          whatsappPhone: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -770,6 +1153,62 @@ export default function LeftPanel({
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">Theme & Atmosphere</h3>
               <p className="text-[11px] text-stone-500">Customize card background color and accent colors.</p>
+            </div>
+
+            {/* Palace Royal Collection Colorways */}
+            <div className="rounded-2xl bg-amber-50/70 border border-amber-200/80 p-3 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                <Crown className="w-3.5 h-3.5 text-amber-700" />
+                <span>Palace Royal Color Themes</span>
+              </div>
+              <p className="text-[10px] text-amber-800/80">
+                Switch between the 4 royal luxury palace themes with 1 click.
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {[
+                  { id: "burgundy", name: "Royal Burgundy", color: "#800020", bg: "#F5EDE6" },
+                  { id: "emerald", name: "Imperial Emerald", color: "#0F382C", bg: "#F3F7F4" },
+                  { id: "rosegold", name: "Ivory & Rose Gold", color: "#6A2D3C", bg: "#FAF4F3" },
+                  { id: "sapphire", name: "Midnight Sapphire", color: "#0F1F44", bg: "#F2F4F9" },
+                ].map((th) => {
+                  const currentVariant = invitation.settings?.palaceVariant || (
+                    invitation.templateId?.includes("emerald") ? "emerald" :
+                    invitation.templateId?.includes("rosegold") ? "rosegold" :
+                    invitation.templateId?.includes("sapphire") ? "sapphire" : "burgundy"
+                  );
+                  const isSelected = currentVariant === th.id;
+                  return (
+                    <button
+                      key={th.id}
+                      type="button"
+                      onClick={() => {
+                        onUpdateField("settings", {
+                          ...invitation.settings,
+                          palaceVariant: th.id,
+                          themeColor: th.color,
+                        });
+                        onUpdateField("background", {
+                          type: "color",
+                          value: th.bg,
+                        });
+                      }}
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left transition ${
+                        isSelected
+                          ? "border-amber-600 bg-white ring-2 ring-amber-500/20 shadow-sm"
+                          : "border-stone-200 bg-white hover:border-stone-300"
+                      }`}
+                    >
+                      <span
+                        className="h-5 w-5 rounded-full border border-black/10 shrink-0 shadow-inner"
+                        style={{ backgroundColor: th.color }}
+                      />
+                      <span className="text-[11px] font-bold text-stone-800 truncate">
+                        {th.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Background Color Presets */}

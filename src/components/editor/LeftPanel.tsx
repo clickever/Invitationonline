@@ -468,7 +468,7 @@ export default function LeftPanel({
   const imageElements = (invitation.elements || []).filter((el) => el.type === "image");
 
   return (
-    <aside className="w-80 border-r border-stone-200 bg-white flex flex-col shrink-0 z-20 overflow-hidden h-[calc(100vh-4rem)]">
+    <aside className="w-full lg:w-80 border-r border-stone-200 bg-white flex flex-col shrink-0 z-20 overflow-hidden h-full lg:h-[calc(100vh-4rem)]">
       {/* Hidden File Input for Device Image Uploads */}
       <input
         type="file"

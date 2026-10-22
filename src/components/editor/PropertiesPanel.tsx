@@ -71,7 +71,7 @@ export default function PropertiesPanel({
 
   if (!selectedElement) {
     return (
-      <aside className="w-72 border-l border-stone-200 bg-white flex flex-col shrink-0 z-20 p-6 text-center justify-center text-stone-400 h-[calc(100vh-4rem)]">
+      <aside className="w-full lg:w-72 border-l border-stone-200 bg-white flex flex-col shrink-0 z-20 p-6 text-center justify-center text-stone-400 h-full lg:h-[calc(100vh-4rem)]">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-100 text-stone-400 mb-3">
           <Sliders className="h-6 w-6" />
         </div>
@@ -89,7 +89,7 @@ export default function PropertiesPanel({
   const isImage = selectedElement.type === "image";
 
   return (
-    <aside className="w-72 border-l border-stone-200 bg-white flex flex-col shrink-0 z-20 h-[calc(100vh-4rem)] overflow-hidden">
+    <aside className="w-full lg:w-72 border-l border-stone-200 bg-white flex flex-col shrink-0 z-20 h-full lg:h-[calc(100vh-4rem)] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-200 bg-stone-50/70 px-4 py-3">
         <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, FileText } from "lucide-react";
 import { CanvasElement, Invitation } from "@/lib/types";
 import { 
   getInvitationById, 
@@ -36,6 +36,8 @@ export default function VisualEditorPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<"canvas" | "form">("canvas");
+  const [mobileSheet, setMobileSheet] = useState<"menu" | "properties" | null>(null);
 
   // Undo / Redo History Stack
   const [history, setHistory] = useState<Invitation[]>([]);
@@ -139,9 +141,9 @@ export default function VisualEditorPage() {
     const handleResize = () => {
       if (typeof window !== "undefined") {
         if (window.innerWidth < 640) {
-          // Responsive fit scale for mobile viewports
-          const fitScale = Number(((window.innerWidth - 24) / 1080).toFixed(2));
-          setZoom(Math.max(0.28, Math.min(fitScale, 0.36)));
+          // Responsive fit scale for mobile viewports (leaving 20px margin so card spans full screen nicely)
+          const fitScale = Number(((window.innerWidth - 20) / 1080).toFixed(2));
+          setZoom(Math.max(0.28, Math.min(fitScale, 0.42)));
         } else if (window.innerWidth < 1024) {
           setZoom(0.38);
         } else {
@@ -363,27 +365,64 @@ export default function VisualEditorPage() {
         isSaving={isSaving}
       />
 
-      {/* Desktop 3-Column Studio Layout */}
+      {/* Mobile Switcher: Visual Canvas vs Form Edit Mode */}
+      <div className="lg:hidden bg-stone-100 px-3 py-1.5 border-b border-stone-200 shrink-0">
+        <div className="flex rounded-xl bg-stone-200/90 p-1">
+          <button
+            onClick={() => setMobileTab("canvas")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              mobileTab === "canvas"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "text-stone-600 hover:text-stone-900"
+            }`}
+          >
+            <Eye className="h-3.5 w-3.5 text-amber-600" />
+            <span>Visual Canvas</span>
+          </button>
+          <button
+            onClick={() => setMobileTab("form")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              mobileTab === "form"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "text-stone-600 hover:text-stone-900"
+            }`}
+          >
+            <FileText className="h-3.5 w-3.5 text-amber-600" />
+            <span>Edit Form (All Fields)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Studio Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Elements Panel (Desktop) */}
-        <div className="hidden lg:block">
+        {/* Left Elements Panel (Desktop always, Mobile when in form mode) */}
+        <div className={`${mobileTab === "form" ? "block w-full" : "hidden"} lg:block lg:w-auto`}>
           <LeftPanel
             invitation={invitation}
             onUpdateField={handleUpdateField}
             onUpdateFields={handleUpdateFields}
             onAddElement={handleAddElement}
-            onSelectElementId={setSelectedElementId}
+            onSelectElementId={(elId) => {
+              setSelectedElementId(elId);
+              if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                setMobileTab("canvas");
+              }
+            }}
           />
         </div>
 
-        {/* Center Interactive Canvas Stage */}
-        <CanvasStage
-          invitation={invitation}
-          selectedElementId={selectedElementId}
-          onSelectElementId={setSelectedElementId}
-          onUpdateElement={handleUpdateElement}
-          zoom={zoom}
-        />
+        {/* Center Interactive Canvas Stage (Desktop always, Mobile when in canvas mode) */}
+        <div className={`${mobileTab === "canvas" ? "flex flex-1" : "hidden lg:flex lg:flex-1"} overflow-hidden h-full`}>
+          <CanvasStage
+            invitation={invitation}
+            selectedElementId={selectedElementId}
+            onSelectElementId={setSelectedElementId}
+            onUpdateElement={handleUpdateElement}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            onOpenProperties={() => setMobileSheet("properties")}
+          />
+        </div>
 
         {/* Right Properties Panel (Desktop) */}
         <div className="hidden lg:block">
@@ -402,6 +441,7 @@ export default function VisualEditorPage() {
         invitation={invitation}
         selectedElement={selectedElement}
         onUpdateField={handleUpdateField}
+        onUpdateFields={handleUpdateFields}
         onAddElement={handleAddElement}
         onUpdateElement={handleUpdateElement}
         onDeleteElement={handleDeleteElement}
@@ -411,6 +451,10 @@ export default function VisualEditorPage() {
         onSave={handleSave}
         onPublish={handlePublish}
         isPublished={invitation.isPublished}
+        activeSheet={mobileSheet}
+        onSetActiveSheet={setMobileSheet}
+        mobileTab={mobileTab}
+        onSelectMobileTab={setMobileTab}
       />
 
       {/* Fullscreen Preview Modal */}

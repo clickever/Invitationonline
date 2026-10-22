@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { CanvasElement, Invitation } from "@/lib/types";
 import CountdownTimer from "../invitation/CountdownTimer";
 
@@ -10,6 +11,8 @@ interface CanvasStageProps {
   onSelectElementId: (id: string | null) => void;
   onUpdateElement: (updated: CanvasElement) => void;
   zoom: number;
+  onZoomChange?: (newZoom: number) => void;
+  onOpenProperties?: () => void;
 }
 
 export default function CanvasStage({
@@ -18,10 +21,18 @@ export default function CanvasStage({
   onSelectElementId,
   onUpdateElement,
   zoom,
+  onZoomChange,
+  onOpenProperties,
 }: CanvasStageProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [touchStartInfo, setTouchStartInfo] = useState<{
+    id: string;
+    clientX: number;
+    clientY: number;
+    hasMoved: boolean;
+  } | null>(null);
 
   const themeColor = invitation.settings?.themeColor || "#D4AF37";
 
@@ -73,7 +84,13 @@ export default function CanvasStage({
     const rect = canvasRef.current.getBoundingClientRect();
     const touchX = (touch.clientX - rect.left) / zoom;
     const touchY = (touch.clientY - rect.top) / zoom;
-    setDraggingId(element.id);
+
+    setTouchStartInfo({
+      id: element.id,
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      hasMoved: false,
+    });
     setDragOffset({
       x: touchX - element.x,
       y: touchY - element.y,
@@ -81,12 +98,22 @@ export default function CanvasStage({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!draggingId || !canvasRef.current || e.touches.length === 0) return;
+    if (!touchStartInfo || !canvasRef.current || e.touches.length === 0) return;
     const touch = e.touches[0];
+    const dist = Math.hypot(touch.clientX - touchStartInfo.clientX, touch.clientY - touchStartInfo.clientY);
+
+    // If movement is under 10px, treat as intentional tap rather than drag to prevent accidental displacement
+    if (dist < 10 && !touchStartInfo.hasMoved) return;
+
+    if (!touchStartInfo.hasMoved) {
+      setTouchStartInfo((prev) => (prev ? { ...prev, hasMoved: true } : null));
+      setDraggingId(touchStartInfo.id);
+    }
+
     const rect = canvasRef.current.getBoundingClientRect();
     const touchX = (touch.clientX - rect.left) / zoom;
     const touchY = (touch.clientY - rect.top) / zoom;
-    const currentElement = (invitation.elements || []).find((el) => el.id === draggingId);
+    const currentElement = (invitation.elements || []).find((el) => el.id === touchStartInfo.id);
     if (!currentElement) return;
 
     const newX = Math.max(0, Math.min(1080 - currentElement.width, Math.round(touchX - dragOffset.x)));
@@ -100,7 +127,12 @@ export default function CanvasStage({
   };
 
   const handleTouchEnd = () => {
+    if (touchStartInfo && !touchStartInfo.hasMoved) {
+      // Clean tap! Open quick edit drawer on mobile
+      onOpenProperties?.();
+    }
     setDraggingId(null);
+    setTouchStartInfo(null);
   };
 
   const renderElement = (el: CanvasElement) => {
@@ -256,52 +288,131 @@ export default function CanvasStage({
     );
   };
 
+  const scaledWidth = Math.round(1080 * zoom);
+  const scaledHeight = Math.round(1920 * zoom);
+
   return (
     <div
-      className="flex-1 bg-stone-100 flex items-center justify-center p-2 sm:p-8 overflow-auto h-[calc(100vh-4rem)] select-none touch-pan-y"
+      className="flex-1 bg-stone-100/90 relative overflow-auto h-full sm:h-[calc(100vh-4rem)] select-none touch-pan-x touch-pan-y"
       onClick={() => onSelectElementId(null)}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Visual Canvas Wrapper scaled by zoom */}
-      <div
-        style={{
-          transform: `scale(${zoom})`,
-          transformOrigin: "center center",
-          transition: draggingId ? "none" : "transform 0.15s ease-out",
-        }}
-        className="relative shadow-2xl rounded-none sm:rounded-[32px] overflow-hidden"
-      >
-        {/* Fixed 1080 x 1920 Design Stage */}
+      {/* Centering Wrapper */}
+      <div className="min-w-full min-h-full flex items-center justify-center p-2 sm:p-8">
+        {/* Physical Layout Sizing Box (Tells flexbox EXACTLY how wide/high the scaled card is) */}
         <div
-          ref={canvasRef}
           style={{
-            width: "1080px",
-            height: "1920px",
-            backgroundColor: invitation.background?.value || "#FDFBF7",
-            backgroundImage: invitation.background?.imageUrl ? `url("${invitation.background.imageUrl}")` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+            width: `${scaledWidth}px`,
+            height: `${scaledHeight}px`,
+            flexShrink: 0,
+            position: "relative",
           }}
-          className="relative overflow-hidden"
+          className="shadow-2xl rounded-2xl sm:rounded-[32px] overflow-hidden bg-white mx-auto my-auto"
         >
-          {/* Background image opacity overlay layer if image is set */}
-          {invitation.background?.imageUrl && (
-            <div
-              className="absolute inset-0 pointer-events-none z-0"
-              style={{
-                backgroundColor: invitation.background?.imageOverlay || "#FFFFFF",
-                opacity: 1 - (invitation.background?.imageOpacity ?? 0.35),
-              }}
-            />
-          )}
+          {/* Virtual 1080 x 1920 Design Stage Scaled Down */}
+          <div
+            ref={canvasRef}
+            style={{
+              width: "1080px",
+              height: "1920px",
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              backgroundColor: invitation.background?.value || "#FDFBF7",
+              backgroundImage: invitation.background?.imageUrl ? `url("${invitation.background.imageUrl}")` : undefined,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+            className="overflow-hidden"
+          >
+            {/* Background image opacity overlay layer if image is set */}
+            {invitation.background?.imageUrl && (
+              <div
+                className="absolute inset-0 pointer-events-none z-0"
+                style={{
+                  backgroundColor: invitation.background?.imageOverlay || "#FFFFFF",
+                  opacity: 1 - (invitation.background?.imageOpacity ?? 0.35),
+                }}
+              />
+            )}
 
-          {/* Elements */}
-          {(invitation.elements || []).map(renderElement)}
+            {/* Elements */}
+            {(invitation.elements || []).map(renderElement)}
+          </div>
         </div>
       </div>
+
+      {/* Floating Zoom Controls for Mobile & Desktop */}
+      {onZoomChange && (
+        <div className="absolute bottom-20 sm:bottom-6 right-3 sm:right-6 z-20 flex items-center gap-1 bg-stone-900/90 backdrop-blur-md text-white px-2 py-1.5 rounded-2xl shadow-2xl border border-stone-700/80">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onZoomChange(Math.max(0.2, Number((zoom - 0.05).toFixed(2))));
+            }}
+            className="p-1.5 rounded-xl hover:bg-stone-800 text-stone-300 hover:text-white transition"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof window !== "undefined") {
+                const fit = window.innerWidth < 640 
+                  ? Number(((window.innerWidth - 24) / 1080).toFixed(2)) 
+                  : 0.44;
+                onZoomChange(Math.max(0.25, Math.min(fit, 0.45)));
+              }
+            }}
+            className="px-2 py-1 text-[11px] font-mono font-bold text-amber-400 hover:bg-stone-800 rounded-lg transition"
+            title="Fit to Screen"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onZoomChange(Math.min(1.2, Number((zoom + 0.05).toFixed(2))));
+            }}
+            className="p-1.5 rounded-xl hover:bg-stone-800 text-stone-300 hover:text-white transition"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Quick Focus / Detailed Mode toggle */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (zoom < 0.5) {
+                onZoomChange(0.70);
+              } else {
+                if (typeof window !== "undefined") {
+                  const fit = window.innerWidth < 640 
+                    ? Number(((window.innerWidth - 24) / 1080).toFixed(2)) 
+                    : 0.44;
+                  onZoomChange(Math.max(0.25, Math.min(fit, 0.45)));
+                }
+              }
+            }}
+            className="ml-1 px-2.5 py-1 text-[10px] font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl shadow-sm transition whitespace-nowrap"
+          >
+            {zoom >= 0.5 ? "Fit Screen" : "🔍 70% Zoom"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

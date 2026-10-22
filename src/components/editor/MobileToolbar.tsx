@@ -18,6 +18,7 @@ interface MobileToolbarProps {
   invitation: Invitation;
   selectedElement: CanvasElement | null;
   onUpdateField: (field: string, value: any) => void;
+  onUpdateFields?: (updates: Partial<Invitation>) => void;
   onAddElement: (element: Partial<CanvasElement>) => void;
   onUpdateElement: (element: CanvasElement) => void;
   onDeleteElement: (id: string) => void;
@@ -27,12 +28,17 @@ interface MobileToolbarProps {
   onSave: () => void;
   onPublish: () => void;
   isPublished?: boolean;
+  activeSheet?: "menu" | "properties" | null;
+  onSetActiveSheet?: (sheet: "menu" | "properties" | null) => void;
+  mobileTab?: "canvas" | "form";
+  onSelectMobileTab?: (tab: "canvas" | "form") => void;
 }
 
 export default function MobileToolbar({
   invitation,
   selectedElement,
   onUpdateField,
+  onUpdateFields,
   onAddElement,
   onUpdateElement,
   onDeleteElement,
@@ -42,21 +48,42 @@ export default function MobileToolbar({
   onSave,
   onPublish,
   isPublished,
+  activeSheet: controlledActiveSheet,
+  onSetActiveSheet,
+  mobileTab,
+  onSelectMobileTab,
 }: MobileToolbarProps) {
-  const [activeSheet, setActiveSheet] = useState<"menu" | "properties" | null>(null);
+  const [internalActiveSheet, setInternalActiveSheet] = useState<"menu" | "properties" | null>(null);
+  const activeSheet = controlledActiveSheet !== undefined ? controlledActiveSheet : internalActiveSheet;
+  const setActiveSheet = onSetActiveSheet || setInternalActiveSheet;
+
+  // Auto-open element properties when an element is tapped on the canvas
+  React.useEffect(() => {
+    if (selectedElement) {
+      setActiveSheet("properties");
+    }
+  }, [selectedElement?.id]);
 
   return (
     <>
       {/* Sticky Bottom Floating Bar */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 px-3 py-2 flex items-center justify-between shadow-2xl">
         <button
-          onClick={() => setActiveSheet(activeSheet === "menu" ? null : "menu")}
+          onClick={() => {
+            if (onSelectMobileTab) {
+              onSelectMobileTab(mobileTab === "form" ? "canvas" : "form");
+            } else {
+              setActiveSheet(activeSheet === "menu" ? null : "menu");
+            }
+          }}
           className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition ${
-            activeSheet === "menu" ? "text-amber-700 bg-amber-50" : "text-stone-600"
+            (activeSheet === "menu" || mobileTab === "form") ? "text-amber-700 bg-amber-50" : "text-stone-600"
           }`}
         >
           <PlusSquare className="h-5 w-5 mb-0.5" />
-          <span className="text-[10px] font-bold">Edit Details</span>
+          <span className="text-[10px] font-bold">
+            {mobileTab === "form" ? "Canvas View" : "Edit Form"}
+          </span>
         </button>
 
         <button
@@ -99,13 +126,23 @@ export default function MobileToolbar({
       {/* Bottom Sheet Drawer */}
       {activeSheet && (
         <div className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex flex-col justify-end">
-          <div className="bg-white rounded-t-3xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom-5">
+          <div className="bg-white rounded-t-3xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom-5">
             {/* Sheet Handle & Close */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-stone-100">
-              <div className="h-1 w-12 rounded-full bg-stone-300 mx-auto" />
+            <div className="flex items-center justify-between px-6 py-3 border-b border-stone-100 bg-stone-50/50">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-xs font-bold text-stone-800">
+                  {activeSheet === "properties" 
+                    ? (selectedElement?.type === "text" ? `Edit Text: ${selectedElement.fieldKey || "Element"}` : "Customize Element") 
+                    : "Edit Invitation Details"}
+                </span>
+              </div>
               <button
-                onClick={() => setActiveSheet(null)}
-                className="p-1 rounded-full text-stone-400 hover:bg-stone-100"
+                onClick={() => {
+                  setActiveSheet(null);
+                  onSelectElementId(null);
+                }}
+                className="p-1 rounded-full text-stone-400 hover:bg-stone-200"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -117,6 +154,7 @@ export default function MobileToolbar({
                 <LeftPanel
                   invitation={invitation}
                   onUpdateField={onUpdateField}
+                  onUpdateFields={onUpdateFields}
                   onAddElement={(el) => {
                     onAddElement(el);
                     setActiveSheet("properties");
@@ -134,7 +172,10 @@ export default function MobileToolbar({
                     setActiveSheet(null);
                   }}
                   onDuplicateElement={onDuplicateElement}
-                  onClose={() => setActiveSheet(null)}
+                  onClose={() => {
+                    setActiveSheet(null);
+                    onSelectElementId(null);
+                  }}
                 />
               )}
             </div>

@@ -281,9 +281,23 @@ export default function CanvasStage({
             width: "1080px",
             height: "1920px",
             backgroundColor: invitation.background?.value || "#FDFBF7",
+            backgroundImage: invitation.background?.imageUrl ? `url("${invitation.background.imageUrl}")` : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
           className="relative overflow-hidden"
         >
+          {/* Background image opacity overlay layer if image is set */}
+          {invitation.background?.imageUrl && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundColor: invitation.background?.imageOverlay || "#FFFFFF",
+                opacity: 1 - (invitation.background?.imageOpacity ?? 0.35),
+              }}
+            />
+          )}
+
           {/* Elements */}
           {(invitation.elements || []).map(renderElement)}
         </div>

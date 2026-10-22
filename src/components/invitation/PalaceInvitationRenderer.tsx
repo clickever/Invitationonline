@@ -9,7 +9,19 @@ import {
   Volume2, 
   VolumeX, 
   Check, 
-  RotateCcw
+  RotateCcw,
+  Calendar,
+  Clock,
+  Plane,
+  Train,
+  Building,
+  Car,
+  MessageCircle,
+  Send,
+  Crown,
+  Share2,
+  ExternalLink,
+  ChevronRight
 } from "lucide-react";
 import { CanvasElement, Invitation, VenueEventItem, ContactItem } from "@/lib/types";
 import CountdownTimer from "./CountdownTimer";
@@ -121,6 +133,51 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
   const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
 
+  // Live Blessings Wall State
+  const [blessings, setBlessings] = useState([
+    {
+      id: "b1",
+      author: "Radhakrishnan & Family",
+      relation: "Uncle & Aunt",
+      text: "Wishing the beautiful couple a lifetime of eternal love, divine happiness, and prosperity! May your days together be filled with boundless joy.",
+      time: "2 hours ago",
+    },
+    {
+      id: "b2",
+      author: "Pooja & Karthik",
+      relation: "Cousins",
+      text: "So thrilled to celebrate your special union! May your love story continue to blossom with every passing sunrise. Congratulations!",
+      time: "5 hours ago",
+    },
+    {
+      id: "b3",
+      author: "Col. Suresh Menon",
+      relation: "Family Friend",
+      text: "Warmest congratulations and heartfelt blessings from all of us in Chennai. Eagerly looking forward to being part of this royal celebration.",
+      time: "Yesterday",
+    },
+  ]);
+  const [guestWishName, setGuestWishName] = useState("");
+  const [guestWishMessage, setGuestWishMessage] = useState("");
+  const [guestWishSent, setGuestWishSent] = useState(false);
+
+  const handleSendBlessing = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guestWishName.trim() || !guestWishMessage.trim()) return;
+    const newBlessing = {
+      id: `bless_${Date.now()}`,
+      author: guestWishName.trim(),
+      relation: "Well-Wisher",
+      text: guestWishMessage.trim(),
+      time: "Just now",
+    };
+    setBlessings([newBlessing, ...blessings]);
+    setGuestWishName("");
+    setGuestWishMessage("");
+    setGuestWishSent(true);
+    setTimeout(() => setGuestWishSent(false), 3000);
+  };
+
   // Fallback defaults from invitation data
   const s = invitation.settings || ({} as any);
 
@@ -135,9 +192,10 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
     return el?.src || fallback;
   };
 
-  // Content configuration
+  // Content configuration — priority given to reactive invitation top-level fields
   const auspiciousSymbol = s.symbol || "ॐ";
-  const familyName = s.familyHostName || getElText("family_name", "Shanmughan Family");
+  const eventTitle = invitation.title || getElText("event_title", "") || getElText("welcome_eyebrow", "") || "You Are Cordially Invited";
+  const familyName = invitation.hostNames || s.familyHostName || getElText("host_names", "") || getElText("family_header", "") || getElText("family_name", "Shanmughan Family");
   const couple1Bride = getElText("bride_name", "Varsha");
   const couple1Groom = getElText("groom_name", "Ajeesh");
   const couple1Parents = s.storyTitle || "Daughter of Mr. Girish & Mrs. Kanjana Girish";
@@ -151,18 +209,19 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
 
   const ceremonyTitle = s.ceremonyName || "Thaalikettu";
   const ceremonyDate = invitation.eventDate ? new Date(invitation.eventDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "November 1st, 2026";
-  const ceremonyTime = s.ceremonyTime || invitation.eventTime || "8:15 AM — 9:15 AM";
-  const ceremonyTemple = s.ceremonyVenue || invitation.venueName || "Guruvayoor Sreekrishnan Temple";
-  const ceremonyLocation = s.ceremonyLocation || invitation.venueAddress || "Guruvayoor, Kerala";
+  const ceremonyTime = invitation.eventTime || s.ceremonyTime || "8:15 AM — 9:15 AM";
+  const ceremonyTemple = invitation.venueName || s.ceremonyVenue || getElText("venue_name", "Guruvayoor Sreekrishnan Temple");
+  const ceremonyLocation = invitation.venueAddress || s.ceremonyLocation || getElText("venue_address", "Guruvayoor, Kerala");
   const ceremonyMapUrl = s.ceremonyMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ceremonyTemple}, ${ceremonyLocation}`)}`;
 
   const receptionTitle = s.receptionName || "An Evening of Joy";
   const receptionDate = s.receptionDate || "November 9th, 2026";
   const receptionTime = s.receptionTime || "5:00 PM — 9:00 PM";
-  const receptionAuditorium = s.receptionVenue || "Golden Palace Auditorium";
-  const receptionAddress = s.receptionAddress || "Convention Center, Choondal, Thrissur–Kunnamkulam Road";
+  const receptionAuditorium = s.receptionVenue || invitation.venueName || "Golden Palace Auditorium";
+  const receptionAddress = s.receptionAddress || invitation.venueAddress || "Convention Center, Choondal, Thrissur–Kunnamkulam Road";
   const receptionMapUrl = s.receptionMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${receptionAuditorium}, ${receptionAddress}`)}`;
 
+  const dressCodeNote = getElText("dress_code", "") || s.dressCode || "Traditional Indian Elegance or Royal Evening Formal";
   const invitationNote = s.storyText || invitation.description || "With immense joy, we invite you to join us in celebrating these beautiful beginnings. Your presence and blessings will make these celebrations even more special and memorable.";
   const hostSignoff = invitation.hostNames || s.familyHostName || "Shanmughan & Lalitha Shanmughan";
   const hostFamilySub = "Abhilash, Aparna, Gautam & Our Little Princess";
@@ -377,6 +436,17 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
           color: t.textMain,
         }}
       >
+        {/* Background Image Texture Layer if configured */}
+        {invitation.background?.imageUrl && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url("${invitation.background.imageUrl}")`,
+              opacity: invitation.background?.imageOpacity ?? 0.25,
+            }}
+          />
+        )}
+
         {/* Floating Replay / Reset Envelope Control */}
         {isOpened && (
           <button
@@ -445,7 +515,7 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
               className="text-[10px] tracking-[0.38em] uppercase font-medium mb-3"
               style={{ color: t.textMuted }}
             >
-              You Are Cordially Invited
+              {eventTitle}
             </p>
 
             {/* Ornamental Flourish Divider */}
@@ -1060,6 +1130,434 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
         <SpiralBindingDivider themeColor={t.gold} />
 
         {/* ═════════════════════════════════════════════════════════════
+            ELEMENT 1: MULTI-DAY CELEBRATION TIMELINE (ORDER OF EVENTS)
+        ═════════════════════════════════════════════════════════════ */}
+        <section className="py-12 px-6 text-center relative">
+          <span 
+            className="text-[10px] tracking-[0.38em] uppercase font-bold mb-1 block"
+            style={{ color: t.medium }}
+          >
+            Order of Auspicious Rituals
+          </span>
+          <h2 className="font-serif text-3xl font-light text-stone-900 mb-1">
+            Celebration Program
+          </h2>
+          <span className="font-serif italic text-xl block mb-6" style={{ color: t.medium }}>
+            Join our cherished ceremonies
+          </span>
+
+          <div className="space-y-3.5">
+            {[
+              {
+                time: "10:00 AM",
+                day: "Ceremony 1",
+                title: "Haldi & Mehendi Harmony",
+                desc: "Auspicious turmeric ceremony with traditional folk songs, henna artistry, and laughter.",
+                icon: Sparkles,
+              },
+              {
+                time: "7:00 PM",
+                day: "Ceremony 2",
+                title: "Royal Sangeet & Musical Night",
+                desc: "An unforgettable evening of vibrant dance performances, rhythmic beats, and celebration.",
+                icon: Crown,
+              },
+              {
+                time: ceremonyTime,
+                day: ceremonyDate,
+                title: "Sacred Muhurtham & Thalikettu",
+                desc: `The divine wedding ceremony solemnized amidst Vedic chants at ${ceremonyTemple}.`,
+                icon: Heart,
+              },
+              {
+                time: "12:30 PM",
+                day: ceremonyDate,
+                title: "Grand Royal Feast (Sadhya)",
+                desc: "Traditional multi-course feast served with immense love on fresh plantain leaves.",
+                icon: Clock,
+              },
+              {
+                time: receptionTime,
+                day: receptionDate,
+                title: "Grand Evening Reception & Dinner",
+                desc: `An enchanting evening of congratulations, gourmet dining, and celebrations at ${receptionAuditorium}.`,
+                icon: Sparkles,
+              },
+            ].map((event, idx) => {
+              const Icon = event.icon;
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl p-4 text-left backdrop-blur-sm border shadow-xs transition-all hover:shadow-md flex items-start gap-3.5"
+                  style={{
+                    backgroundColor: t.bgCard,
+                    borderColor: `${t.medium}26`,
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                    style={{
+                      backgroundColor: `${t.medium}15`,
+                      borderColor: `${t.gold}66`,
+                      color: t.primary,
+                    }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span className="font-serif font-bold text-sm text-stone-900 truncate">
+                        {event.title}
+                      </span>
+                      <span
+                        className="px-2 py-0.5 rounded-md text-[9px] font-bold font-mono uppercase tracking-wider shrink-0"
+                        style={{
+                          backgroundColor: `${t.primary}18`,
+                          color: t.primary,
+                        }}
+                      >
+                        {event.time}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      {event.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* SPIRAL BINDING DIVIDER */}
+        <SpiralBindingDivider themeColor={t.gold} />
+
+        {/* ═════════════════════════════════════════════════════════════
+            ELEMENT 2: LOVE STORY & MILESTONES JOURNEY
+        ═════════════════════════════════════════════════════════════ */}
+        <section 
+          className="py-12 px-6 text-center relative overflow-hidden"
+          style={{ backgroundColor: t.wash }}
+        >
+          <span 
+            className="text-[10px] tracking-[0.38em] uppercase font-bold mb-1 block"
+            style={{ color: t.medium }}
+          >
+            A Journey of Two Souls
+          </span>
+          <h2 className="font-serif text-3xl font-light text-stone-900 mb-1">
+            Our Love Story
+          </h2>
+          <span className="font-serif italic text-xl block mb-6" style={{ color: t.medium }}>
+            Milestones of forever
+          </span>
+
+          <div className="space-y-4 text-left">
+            {[
+              {
+                step: "01",
+                year: "Chapter I",
+                title: "The Serendipitous First Glance",
+                desc: "A calm, picturesque afternoon where destiny quietly aligned our paths, and conversation flowed as if we had known each other forever.",
+              },
+              {
+                step: "02",
+                year: "Chapter II",
+                title: "Coffee, Laughter & Shared Dreams",
+                desc: "Countless hours of conversations, quiet smiles across crowded tables, and the gradual realisation that our dreams beat to the same rhythm.",
+              },
+              {
+                step: "03",
+                year: "Chapter III",
+                title: "The Golden Proposal",
+                desc: "Under a blanket of starlight, with hearts racing and joyful tears, the promise of forever was sealed with a radiant 'Yes!'.",
+              },
+              {
+                step: "04",
+                year: "Chapter IV",
+                title: "Two Families, One Sacred Bond",
+                desc: "With the heartfelt blessings of our elders and the warm embrace of our loved ones, we step forward together into eternity.",
+              },
+            ].map((milestone, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl p-4.5 backdrop-blur-sm border shadow-xs relative"
+                style={{
+                  backgroundColor: t.bgCard,
+                  borderColor: `${t.medium}26`,
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    className="font-serif italic text-xs font-bold uppercase tracking-wider"
+                    style={{ color: t.primary }}
+                  >
+                    {milestone.year}
+                  </span>
+                  <span
+                    className="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold text-white shadow-xs"
+                    style={{ backgroundColor: t.primary }}
+                  >
+                    {milestone.step}
+                  </span>
+                </div>
+                <h3 className="font-serif text-base font-bold text-stone-900 mb-1">
+                  {milestone.title}
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed font-sans">
+                  {milestone.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* SPIRAL BINDING DIVIDER */}
+        <SpiralBindingDivider themeColor={t.gold} />
+
+        {/* ═════════════════════════════════════════════════════════════
+            ELEMENT 3: ROYAL DRESS CODE & AESTHETIC PALETTE
+        ═════════════════════════════════════════════════════════════ */}
+        <section className="py-12 px-6 text-center relative">
+          <span 
+            className="text-[10px] tracking-[0.38em] uppercase font-bold mb-1 block"
+            style={{ color: t.medium }}
+          >
+            Aesthetic Harmony
+          </span>
+          <h2 className="font-serif text-3xl font-light text-stone-900 mb-1">
+            Royal Dress Code
+          </h2>
+          <span className="font-serif italic text-xl block mb-5" style={{ color: t.medium }}>
+            Celebration color palette
+          </span>
+
+          <div 
+            className="rounded-2xl p-5 backdrop-blur-sm border shadow-xs text-center space-y-4"
+            style={{
+              backgroundColor: t.bgCard,
+              borderColor: `${t.medium}26`,
+            }}
+          >
+            <p className="text-xs text-stone-700 leading-relaxed font-sans max-w-xs mx-auto">
+              {dressCodeNote}
+            </p>
+
+            {/* Aesthetic Swatch Circles */}
+            <div className="pt-2 border-t border-stone-200/60">
+              <span className="text-[10px] tracking-[0.25em] uppercase font-bold text-stone-500 block mb-3">
+                Complementary Wedding Tones
+              </span>
+              <div className="flex justify-center items-center gap-3">
+                {[
+                  { name: "Emerald", color: "#0F382C" },
+                  { name: "Gold", color: "#D4AF37" },
+                  { name: "Burgundy", color: "#800020" },
+                  { name: "Rose Gold", color: "#C06E82" },
+                  { name: "Ivory", color: "#F5EDE6", border: true },
+                ].map((swatch, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1 group">
+                    <div
+                      className={`w-9 h-9 rounded-full shadow-md transition-transform group-hover:scale-110 ${
+                        swatch.border ? "border border-stone-300" : ""
+                      }`}
+                      style={{ backgroundColor: swatch.color }}
+                    />
+                    <span className="text-[9px] font-medium text-stone-600">
+                      {swatch.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-[10px] italic text-stone-500 pt-1">
+              Traditional Indian Silks, Sherwanis, or Formal Royal Evening Attire are warmly welcomed.
+            </p>
+          </div>
+        </section>
+
+        {/* SPIRAL BINDING DIVIDER */}
+        <SpiralBindingDivider themeColor={t.gold} />
+
+        {/* ═════════════════════════════════════════════════════════════
+            ELEMENT 4: GUEST TRAVEL & CONCIERGE INFORMATION
+        ═════════════════════════════════════════════════════════════ */}
+        <section 
+          className="py-12 px-6 text-center relative"
+          style={{ backgroundColor: t.wash }}
+        >
+          <span 
+            className="text-[10px] tracking-[0.38em] uppercase font-bold mb-1 block"
+            style={{ color: t.medium }}
+          >
+            Guest Travel & Stay
+          </span>
+          <h2 className="font-serif text-3xl font-light text-stone-900 mb-1">
+            Travel Concierge
+          </h2>
+          <span className="font-serif italic text-xl block mb-6" style={{ color: t.medium }}>
+            Getting to the celebration
+          </span>
+
+          <div className="grid grid-cols-1 gap-3 text-left">
+            {[
+              {
+                icon: Plane,
+                label: "Nearest Airports",
+                info: "Cochin International Airport (COK) — 78 km\nCalicut International Airport (CCJ) — 82 km",
+              },
+              {
+                icon: Train,
+                label: "Railway Stations",
+                info: "Guruvayoor Railway Station (GUV) — 1.5 km\nThrissur Central Railway Station (TCR) — 28 km",
+              },
+              {
+                icon: Building,
+                label: "Guest Accommodations",
+                info: "Reserved guest rooms and hospitality desks available at the venue hotel for outstation guests.",
+              },
+              {
+                icon: Car,
+                label: "Valet & Parking",
+                info: "Complimentary designated valet parking available for all guests at the main gates.",
+              },
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl p-4 backdrop-blur-sm border shadow-xs flex items-start gap-3.5"
+                  style={{
+                    backgroundColor: t.bgCard,
+                    borderColor: `${t.medium}26`,
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                    style={{
+                      backgroundColor: `${t.medium}15`,
+                      borderColor: `${t.gold}66`,
+                      color: t.primary,
+                    }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-xs uppercase tracking-wider text-stone-900 mb-0.5">
+                      {item.label}
+                    </h4>
+                    <p className="text-[11px] text-stone-600 whitespace-pre-line leading-relaxed">
+                      {item.info}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* SPIRAL BINDING DIVIDER */}
+        <SpiralBindingDivider themeColor={t.gold} />
+
+        {/* ═════════════════════════════════════════════════════════════
+            ELEMENT 5: 1-TAP ADD TO CALENDAR INTEGRATION
+        ═════════════════════════════════════════════════════════════ */}
+        <section className="py-12 px-6 text-center relative">
+          <span 
+            className="text-[10px] tracking-[0.38em] uppercase font-bold mb-1 block"
+            style={{ color: t.medium }}
+          >
+            Mark Your Calendar
+          </span>
+          <h2 className="font-serif text-3xl font-light text-stone-900 mb-1">
+            Save The Date
+          </h2>
+          <span className="font-serif italic text-xl block mb-6" style={{ color: t.medium }}>
+            Never miss a precious moment
+          </span>
+
+          <div
+            className="rounded-2xl p-5 backdrop-blur-sm border shadow-xs text-center space-y-4"
+            style={{
+              backgroundColor: t.bgCard,
+              borderColor: `${t.medium}26`,
+            }}
+          >
+            <div className="flex items-center justify-center gap-2 text-stone-800">
+              <Calendar className="w-5 h-5" style={{ color: t.primary }} />
+              <span className="font-serif font-bold text-base">
+                {ceremonyDate}
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 max-w-xs mx-auto">
+              Add the ceremony schedule and location directly to your phone calendar with one tap.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+              {/* Google Calendar */}
+              <a
+                href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${couple1Groom} & ${couple1Bride} Wedding`)}&dates=20261101T024500Z/20261101T063000Z&details=${encodeURIComponent(`Wedding of ${couple1Groom} & ${couple1Bride} at ${ceremonyTemple}`)}&location=${encodeURIComponent(`${ceremonyTemple}, ${ceremonyLocation}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-xl text-xs font-bold tracking-wider uppercase text-white shadow transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
+                style={{ backgroundColor: t.primary }}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Google</span>
+              </a>
+
+              {/* Apple iCal Download */}
+              <button
+                type="button"
+                onClick={() => {
+                  const icsContent = [
+                    "BEGIN:VCALENDAR",
+                    "VERSION:2.0",
+                    "PRODID:-//InviteStudio//Wedding//EN",
+                    "BEGIN:VEVENT",
+                    `SUMMARY:${couple1Groom} & ${couple1Bride} Wedding Celebration`,
+                    `DESCRIPTION:Wedding ceremony at ${ceremonyTemple}`,
+                    `LOCATION:${ceremonyTemple}, ${ceremonyLocation}`,
+                    "DTSTART:20261101T081500",
+                    "DTEND:20261101T123000",
+                    "END:VEVENT",
+                    "END:VCALENDAR"
+                  ].join("\r\n");
+                  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${couple1Groom}_and_${couple1Bride}_Wedding.ics`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                className="py-2.5 px-3 rounded-xl text-xs font-bold tracking-wider uppercase text-stone-800 bg-white border border-stone-200 shadow-xs transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <span>Apple / iCal</span>
+              </button>
+
+              {/* Outlook */}
+              <a
+                href={`https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${encodeURIComponent(`${couple1Groom} & ${couple1Bride} Wedding`)}&body=${encodeURIComponent(`Wedding of ${couple1Groom} & ${couple1Bride} at ${ceremonyTemple}`)}&location=${encodeURIComponent(`${ceremonyTemple}, ${ceremonyLocation}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-xl text-xs font-bold tracking-wider uppercase text-stone-800 bg-white border border-stone-200 shadow-xs transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <span>Outlook</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ═════════════════════════════════════════════════════════════
+            SPIRAL BINDING DIVIDER
+        ═════════════════════════════════════════════════════════════ */}
+        <SpiralBindingDivider themeColor={t.gold} />
+
+        {/* ═════════════════════════════════════════════════════════════
             8. INTERACTIVE RSVP FORM & DIRECT CONTACTS
         ═════════════════════════════════════════════════════════════ */}
         <section className="py-12 px-6 relative">
@@ -1255,6 +1753,113 @@ export default function PalaceInvitationRenderer({ invitation }: PalaceInvitatio
                 </a>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ═════════════════════════════════════════════════════════════
+            SPIRAL BINDING DIVIDER
+        ═════════════════════════════════════════════════════════════ */}
+        <SpiralBindingDivider themeColor={t.gold} />
+
+        {/* ═════════════════════════════════════════════════════════════
+            ELEMENT 6: LIVE BLESSINGS WALL & HEARTFELT WISHES
+        ═════════════════════════════════════════════════════════════ */}
+        <section 
+          className="py-12 px-6 text-center relative"
+          style={{ backgroundColor: t.wash }}
+        >
+          <span 
+            className="text-[10px] tracking-[0.38em] uppercase font-bold mb-1 block"
+            style={{ color: t.medium }}
+          >
+            Heartfelt Wishes
+          </span>
+          <h2 className="font-serif text-3xl font-light text-stone-900 mb-1">
+            Blessings Wall
+          </h2>
+          <span className="font-serif italic text-xl block mb-6" style={{ color: t.medium }}>
+            Leave your warm wishes for the newlyweds
+          </span>
+
+          {/* Interactive Send Blessing Form */}
+          <form 
+            onSubmit={handleSendBlessing}
+            className="rounded-2xl p-4.5 backdrop-blur-sm border shadow-xs mb-6 text-left space-y-3"
+            style={{
+              backgroundColor: t.bgCard,
+              borderColor: `${t.medium}26`,
+            }}
+          >
+            <div className="flex items-center gap-1.5 text-xs font-bold text-stone-800 mb-1">
+              <MessageCircle className="w-3.5 h-3.5" style={{ color: t.primary }} />
+              <span>Write a Blessing</span>
+            </div>
+
+            <input
+              type="text"
+              required
+              placeholder="Your Name (e.g. Ramesh & Priya)"
+              value={guestWishName}
+              onChange={(e) => setGuestWishName(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500"
+            />
+
+            <textarea
+              rows={2}
+              required
+              placeholder="Share your prayers, love, and joyous wishes..."
+              value={guestWishMessage}
+              onChange={(e) => setGuestWishMessage(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500 resize-none"
+            />
+
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl text-xs font-bold tracking-wider uppercase text-white shadow transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+              style={{ backgroundColor: t.primary }}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{guestWishSent ? "Blessing Posted! ✓" : "Post Your Blessing"}</span>
+            </button>
+          </form>
+
+          {/* Feed of Blessings */}
+          <div className="space-y-3 text-left">
+            {blessings.map((blessing) => (
+              <div
+                key={blessing.id}
+                className="rounded-2xl p-4 backdrop-blur-sm border shadow-xs space-y-2 animate-in fade-in"
+                style={{
+                  backgroundColor: t.bgCard,
+                  borderColor: `${t.medium}26`,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-serif font-bold text-white shadow-xs"
+                      style={{ backgroundColor: t.primary }}
+                    >
+                      {blessing.author.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-serif font-bold text-xs text-stone-900">
+                        {blessing.author}
+                      </h4>
+                      <p className="text-[10px] text-stone-500">
+                        {blessing.relation}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    {blessing.time}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-700 font-serif italic leading-relaxed pl-1">
+                  &quot;{blessing.text}&quot;
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 

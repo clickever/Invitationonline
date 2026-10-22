@@ -193,38 +193,44 @@ export default function VisualEditorPage() {
     }
   };
 
-  // State Updates
-  const updateInvitationState = (updated: Invitation) => {
-    setInvitation(updated);
-    pushHistory(updated);
+  // State Updates with functional updater to avoid race conditions
+  const updateInvitationState = (updater: ((prev: Invitation) => Invitation) | Invitation) => {
+    setInvitation((prev) => {
+      if (!prev) return prev;
+      const updated = typeof updater === "function" ? (updater as (p: Invitation) => Invitation)(prev) : updater;
+      pushHistory(updated);
 
-    if (getCurrentUser()) {
-      saveInvitation(updated).catch(console.error);
-    } else {
-      saveGuestDraft(id, updated);
-      saveGuestDraft(updated.id, updated);
-    }
+      if (getCurrentUser()) {
+        saveInvitation(updated).catch(console.error);
+      } else {
+        saveGuestDraft(id, updated);
+        saveGuestDraft(updated.id, updated);
+      }
+      return updated;
+    });
   };
 
   const handleUpdateField = (field: string, value: any) => {
-    if (!invitation) return;
-    const updated = {
-      ...invitation,
+    updateInvitationState((prev) => ({
+      ...prev,
       [field]: value,
-    };
-    updateInvitationState(updated);
+    }));
+  };
+
+  const handleUpdateFields = (updates: Partial<Invitation>) => {
+    updateInvitationState((prev) => ({
+      ...prev,
+      ...updates,
+    }));
   };
 
   const handleUpdateElement = (updatedElement: CanvasElement) => {
-    if (!invitation) return;
-    const updatedElements = (invitation.elements || []).map((el) =>
-      el.id === updatedElement.id ? updatedElement : el
-    );
-    const updated = {
-      ...invitation,
-      elements: updatedElements,
-    };
-    updateInvitationState(updated);
+    updateInvitationState((prev) => ({
+      ...prev,
+      elements: (prev.elements || []).map((el) =>
+        el.id === updatedElement.id ? updatedElement : el
+      ),
+    }));
   };
 
   const handleAddElement = (newElement: Partial<CanvasElement>) => {
@@ -364,6 +370,7 @@ export default function VisualEditorPage() {
           <LeftPanel
             invitation={invitation}
             onUpdateField={handleUpdateField}
+            onUpdateFields={handleUpdateFields}
             onAddElement={handleAddElement}
             onSelectElementId={setSelectedElementId}
           />

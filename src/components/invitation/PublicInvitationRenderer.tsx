@@ -215,8 +215,22 @@ export default function PublicInvitationRenderer({ invitation }: PublicInvitatio
           className="relative min-h-[92vh] sm:min-h-[850px] p-6 sm:p-8 flex flex-col justify-between"
           style={{
             backgroundColor: invitation.background?.value || "#FDFBF7",
+            backgroundImage: invitation.background?.imageUrl ? `url("${invitation.background.imageUrl}")` : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         >
+          {/* Background image opacity overlay layer if image is set */}
+          {invitation.background?.imageUrl && (
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                backgroundColor: invitation.background?.imageOverlay || "#FFFFFF",
+                opacity: 1 - (invitation.background?.imageOpacity ?? 0.35),
+              }}
+            />
+          )}
+
           {/* Background shapes & ornamental borders */}
           {shapeElements.map(renderElement)}
 

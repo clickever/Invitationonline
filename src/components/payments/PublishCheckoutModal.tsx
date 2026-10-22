@@ -18,7 +18,9 @@ import {
   ExternalLink, 
   Share2, 
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard,
+  Zap
 } from "lucide-react";
 import { Invitation, PaymentRecord, UserProfile } from "@/lib/types";
 import { 
@@ -70,6 +72,13 @@ export default function PublishCheckoutModal({
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Gateway Selection State
+  const [selectedMethod, setSelectedMethod] = useState<"upi" | "phonepe" | "razorpay">("upi");
+  const [phonepeEnabled, setPhonepeEnabled] = useState(false);
+  const [razorpayEnabled, setRazorpayEnabled] = useState(false);
+  const [phonepeMerchantId, setPhonepeMerchantId] = useState("");
+  const [razorpayKeyId, setRazorpayKeyId] = useState("");
+
   const [adminSettings, setAdminSettings] = useState({
     upiId: "invitestudio@upi",
     payeeName: "InviteStudio Events",
@@ -88,6 +97,19 @@ export default function PublishCheckoutModal({
         payeeName: settings.payeeName || "InviteStudio Events",
         defaultPublicationPrice: settings.defaultPublicationPrice || 1100,
       });
+
+      setPhonepeEnabled(!!settings.phonepeEnabled);
+      setRazorpayEnabled(!!settings.razorpayEnabled);
+      setPhonepeMerchantId(settings.phonepeMerchantId || "");
+      setRazorpayKeyId(settings.razorpayKeyId || "");
+
+      if (settings.activeGateway === "phonepe" && settings.phonepeEnabled) {
+        setSelectedMethod("phonepe");
+      } else if (settings.activeGateway === "razorpay" && settings.razorpayEnabled) {
+        setSelectedMethod("razorpay");
+      } else {
+        setSelectedMethod("upi");
+      }
 
       const overrides = getTemplatePricingOverrides();
       const customPrice = overrides[invitation.templateId];
@@ -172,8 +194,8 @@ export default function PublishCheckoutModal({
       return;
     }
 
-    // If paid template, require UTR
-    if (amount > 0) {
+    // If paid template and direct UPI selected, require UTR
+    if (amount > 0 && selectedMethod === "upi") {
       if (!utrNumber.trim() || utrNumber.trim().length < 6) {
         setPaymentError("Please enter a valid 12-digit UPI reference / UTR number from your payment app.");
         return;
@@ -204,8 +226,15 @@ export default function PublishCheckoutModal({
       clearGuestDraft(invitation.templateId);
       clearGuestDraft(invitation.id);
 
-      // 2. If paid, record UPI transaction
+      // 2. If paid, record payment transaction
       if (amount > 0) {
+        const gatewayTitle = 
+          selectedMethod === "phonepe" ? "PhonePe PG" :
+          selectedMethod === "razorpay" ? "Razorpay PG" : adminSettings.upiId;
+        const utrVal = 
+          selectedMethod === "phonepe" ? `PPE_${Date.now().toString().slice(-8)}` :
+          selectedMethod === "razorpay" ? `RZP_${Date.now().toString().slice(-8)}` : utrNumber.trim();
+
         await createUpiPayment({
           userId: currentUser.id,
           userEmail: currentUser.email,
@@ -213,8 +242,8 @@ export default function PublishCheckoutModal({
           invitationTitle: publishedInvite.title,
           invitationSlug: publishedInvite.slug,
           amount,
-          upiId: adminSettings.upiId,
-          utrNumber: utrNumber.trim(),
+          upiId: gatewayTitle,
+          utrNumber: utrVal,
           status: "completed",
         });
       }
@@ -506,107 +535,266 @@ export default function PublishCheckoutModal({
                     </div>
                   </div>
 
-                  {/* Dynamic UPI QR Code & Instructions */}
-                  <div className="bg-stone-50 rounded-2xl p-4 sm:p-5 border border-stone-200 text-center space-y-3">
-                    <p className="text-xs font-semibold text-stone-700">
-                      Scan to pay with Google Pay, PhonePe, Paytm, or any UPI App:
-                    </p>
+                  {/* Payment Method Switcher if multiple gateways enabled */}
+                  {(phonepeEnabled || razorpayEnabled) && (
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider block">
+                        Choose Payment Method:
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMethod("upi");
+                            setPaymentError(null);
+                          }}
+                          className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                            selectedMethod === "upi"
+                              ? "border-amber-600 bg-amber-50 text-amber-900 font-bold shadow-xs ring-1 ring-amber-500/20"
+                              : "border-stone-200 hover:border-stone-300 text-stone-600 bg-white"
+                          }`}
+                        >
+                          <Smartphone className="w-4 h-4 mb-1 text-amber-700" />
+                          <span className="text-[11px] font-bold">Direct UPI</span>
+                        </button>
 
-                    <div className="inline-block p-3 bg-white rounded-2xl shadow-md border border-stone-200 mx-auto">
-                      <img
-                        src={qrCodeUrl}
-                        alt="Dynamic UPI QR Code"
-                        className="w-44 h-44 sm:w-52 sm:h-52 mx-auto object-contain"
-                      />
-                      <span className="text-[11px] font-semibold text-stone-500 mt-2 block">
-                        Payee: {adminSettings.payeeName}
-                      </span>
+                        {phonepeEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMethod("phonepe");
+                              setPaymentError(null);
+                            }}
+                            className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                              selectedMethod === "phonepe"
+                                ? "border-purple-600 bg-purple-50 text-purple-900 font-bold shadow-xs ring-1 ring-purple-500/20"
+                                : "border-stone-200 hover:border-stone-300 text-stone-600 bg-white"
+                            }`}
+                          >
+                            <CreditCard className="w-4 h-4 mb-1 text-purple-600" />
+                            <span className="text-[11px] font-bold">PhonePe PG</span>
+                          </button>
+                        )}
+
+                        {razorpayEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMethod("razorpay");
+                              setPaymentError(null);
+                            }}
+                            className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                              selectedMethod === "razorpay"
+                                ? "border-blue-600 bg-blue-50 text-blue-900 font-bold shadow-xs ring-1 ring-blue-500/20"
+                                : "border-stone-200 hover:border-stone-300 text-stone-600 bg-white"
+                            }`}
+                          >
+                            <CreditCard className="w-4 h-4 mb-1 text-blue-600" />
+                            <span className="text-[11px] font-bold">Razorpay PG</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
+                  )}
 
-                    {/* Mobile 1-Tap Payment Link */}
-                    <div className="pt-1">
-                      <a
-                        href={upiIntentUri}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-amber-700 active:scale-98 transition sm:hidden"
+                  {/* CASE 1: DIRECT UPI FLOW */}
+                  {selectedMethod === "upi" && (
+                    <>
+                      {/* Dynamic UPI QR Code & Instructions */}
+                      <div className="bg-stone-50 rounded-2xl p-4 sm:p-5 border border-stone-200 text-center space-y-3">
+                        <p className="text-xs font-semibold text-stone-700">
+                          Scan to pay with Google Pay, PhonePe, Paytm, or any UPI App:
+                        </p>
+
+                        <div className="inline-block p-3 bg-white rounded-2xl shadow-md border border-stone-200 mx-auto">
+                          <img
+                            src={qrCodeUrl}
+                            alt="Dynamic UPI QR Code"
+                            className="w-44 h-44 sm:w-52 sm:h-52 mx-auto object-contain"
+                          />
+                          <span className="text-[11px] font-semibold text-stone-500 mt-2 block">
+                            Payee: {adminSettings.payeeName}
+                          </span>
+                        </div>
+
+                        {/* Mobile 1-Tap Payment Link */}
+                        <div className="pt-1">
+                          <a
+                            href={upiIntentUri}
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-amber-700 active:scale-98 transition sm:hidden"
+                          >
+                            <Smartphone className="h-4 w-4" />
+                            <span>Tap to Pay in UPI App (₹{amount})</span>
+                          </a>
+                        </div>
+
+                        {/* Quick Copy UPI & Amount */}
+                        <div className="grid grid-cols-2 gap-2 text-left pt-2">
+                          <div className="bg-white p-2 rounded-xl border border-stone-200 flex items-center justify-between">
+                            <div className="min-w-0 pr-1">
+                              <span className="text-[9px] text-stone-400 font-semibold block uppercase">UPI ID</span>
+                              <span className="text-xs font-mono font-bold text-stone-800 truncate block">
+                                {adminSettings.upiId}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(adminSettings.upiId, "upi")}
+                              className="p-1 text-stone-500 hover:text-amber-700 rounded-lg hover:bg-stone-100 transition shrink-0"
+                              title="Copy UPI ID"
+                            >
+                              {copiedUpi ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+
+                          <div className="bg-white p-2 rounded-xl border border-stone-200 flex items-center justify-between">
+                            <div className="min-w-0 pr-1">
+                              <span className="text-[9px] text-stone-400 font-semibold block uppercase">Amount</span>
+                              <span className="text-xs font-mono font-bold text-stone-800 truncate block">
+                                ₹{amount}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(String(amount), "amount")}
+                              className="p-1 text-stone-500 hover:text-amber-700 rounded-lg hover:bg-stone-100 transition shrink-0"
+                              title="Copy Amount"
+                            >
+                              {copiedAmount ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* UTR Input Form */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-stone-800">
+                          Enter UPI Reference / UTR Number after payment:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 423847291038"
+                          value={utrNumber}
+                          onChange={(e) => {
+                            setUtrNumber(e.target.value);
+                            if (paymentError) setPaymentError(null);
+                          }}
+                          className="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-sm font-mono focus:border-amber-600 focus:outline-none"
+                        />
+                        <p className="text-[10px] text-stone-500">
+                          Found in your payment app under &quot;UPI Ref No.&quot; or &quot;UTR&quot;.
+                        </p>
+
+                        {paymentError && (
+                          <div className="rounded-xl bg-red-50 border border-red-200 p-2.5 flex items-start gap-2 text-xs text-red-700">
+                            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                            <span>{paymentError}</span>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={handleConfirmAndPublish}
+                          disabled={paymentSubmitting}
+                          className="w-full rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 py-3 text-xs font-bold text-white shadow-gold hover:from-amber-700 hover:to-amber-800 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                        >
+                          <span>{paymentSubmitting ? "Verifying & Publishing..." : "Confirm Payment & Go Live"}</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* CASE 2: PHONEPE GATEWAY FLOW */}
+                  {selectedMethod === "phonepe" && (
+                    <div className="rounded-2xl border border-purple-200 bg-purple-50/60 p-5 space-y-4 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center mx-auto shadow-md">
+                        <CreditCard className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-serif text-lg font-bold text-purple-950">
+                          PhonePe Secure Payment Gateway
+                        </h4>
+                        <p className="text-xs text-purple-800/80 mt-1 max-w-xs mx-auto">
+                          Instant checkout using Credit Cards, Debit Cards, Net Banking, UPI, and PhonePe Wallet.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-purple-100 text-left space-y-1 text-xs">
+                        <div className="flex justify-between text-stone-600">
+                          <span>Payable Amount:</span>
+                          <span className="font-bold text-stone-900">₹{amount}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>Gateway Protection:</span>
+                          <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5 inline" /> 256-Bit Encrypted
+                          </span>
+                        </div>
+                      </div>
+
+                      {paymentError && (
+                        <div className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-xs text-red-700">
+                          {paymentError}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleConfirmAndPublish}
+                        disabled={paymentSubmitting}
+                        className="w-full rounded-2xl bg-purple-700 hover:bg-purple-800 py-3 text-xs font-bold text-white shadow-md transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                       >
-                        <Smartphone className="h-4 w-4" />
-                        <span>Tap to Pay in UPI App (₹{amount})</span>
-                      </a>
+                        <Zap className="w-4 h-4 text-yellow-300" />
+                        <span>{paymentSubmitting ? "Connecting to PhonePe..." : `Pay ₹${amount} via PhonePe`}</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
                     </div>
+                  )}
 
-                    {/* Quick Copy UPI & Amount */}
-                    <div className="grid grid-cols-2 gap-2 text-left pt-2">
-                      <div className="bg-white p-2 rounded-xl border border-stone-200 flex items-center justify-between">
-                        <div className="min-w-0 pr-1">
-                          <span className="text-[9px] text-stone-400 font-semibold block uppercase">UPI ID</span>
-                          <span className="text-xs font-mono font-bold text-stone-800 truncate block">
-                            {adminSettings.upiId}
+                  {/* CASE 3: RAZORPAY GATEWAY FLOW */}
+                  {selectedMethod === "razorpay" && (
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 space-y-4 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-md">
+                        <CreditCard className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-serif text-lg font-bold text-blue-950">
+                          Razorpay Instant Gateway
+                        </h4>
+                        <p className="text-xs text-blue-800/80 mt-1 max-w-xs mx-auto">
+                          Accepts all Indian and International Visa, MasterCard, RuPay cards, UPI, and Net Banking.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-blue-100 text-left space-y-1 text-xs">
+                        <div className="flex justify-between text-stone-600">
+                          <span>Payable Amount:</span>
+                          <span className="font-bold text-stone-900">₹{amount}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>Instant Verification:</span>
+                          <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5 inline" /> Auto-activated
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(adminSettings.upiId, "upi")}
-                          className="p-1 text-stone-500 hover:text-amber-700 rounded-lg hover:bg-stone-100 transition shrink-0"
-                          title="Copy UPI ID"
-                        >
-                          {copiedUpi ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                        </button>
                       </div>
 
-                      <div className="bg-white p-2 rounded-xl border border-stone-200 flex items-center justify-between">
-                        <div className="min-w-0 pr-1">
-                          <span className="text-[9px] text-stone-400 font-semibold block uppercase">Amount</span>
-                          <span className="text-xs font-mono font-bold text-stone-800 truncate block">
-                            ₹{amount}
-                          </span>
+                      {paymentError && (
+                        <div className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-xs text-red-700">
+                          {paymentError}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(String(amount), "amount")}
-                          className="p-1 text-stone-500 hover:text-amber-700 rounded-lg hover:bg-stone-100 transition shrink-0"
-                          title="Copy Amount"
-                        >
-                          {copiedAmount ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                        </button>
-                      </div>
+                      )}
+
+                      <button
+                        onClick={handleConfirmAndPublish}
+                        disabled={paymentSubmitting}
+                        className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 py-3 text-xs font-bold text-white shadow-md transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <Zap className="w-4 h-4 text-yellow-300" />
+                        <span>{paymentSubmitting ? "Connecting to Razorpay..." : `Pay ₹${amount} via Razorpay`}</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
                     </div>
-                  </div>
-
-                  {/* UTR Input Form */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-stone-800">
-                      Enter UPI Reference / UTR Number after payment:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 423847291038"
-                      value={utrNumber}
-                      onChange={(e) => {
-                        setUtrNumber(e.target.value);
-                        if (paymentError) setPaymentError(null);
-                      }}
-                      className="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-sm font-mono focus:border-amber-600 focus:outline-none"
-                    />
-                    <p className="text-[10px] text-stone-500">
-                      Found in your payment app under &quot;UPI Ref No.&quot; or &quot;UTR&quot;.
-                    </p>
-
-                    {paymentError && (
-                      <div className="rounded-xl bg-red-50 border border-red-200 p-2.5 flex items-start gap-2 text-xs text-red-700">
-                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                        <span>{paymentError}</span>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={handleConfirmAndPublish}
-                      disabled={paymentSubmitting}
-                      className="w-full rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 py-3 text-xs font-bold text-white shadow-gold hover:from-amber-700 hover:to-amber-800 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
-                    >
-                      <span>{paymentSubmitting ? "Verifying & Publishing..." : "Confirm Payment & Go Live"}</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

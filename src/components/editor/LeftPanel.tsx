@@ -21,14 +21,93 @@ import {
   Layers,
   ChevronDown,
   Crown,
-  Phone
+  Phone,
+  Play,
+  Pause,
+  Clock,
+  Compass,
+  Plus,
+  Volume2
 } from "lucide-react";
 import { CanvasElement, Invitation, InvitationSettings } from "@/lib/types";
 import { PALACE_THEMES } from "../invitation/PalaceInvitationRenderer";
 
+export const LUXURY_BACKGROUND_PRESETS = [
+  {
+    id: "damask_silk",
+    name: "Antique Damask Silk",
+    url: "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?auto=format&fit=crop&w=1200&q=80",
+    thumb: "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "royal_floral",
+    name: "Royal Velvet Floral",
+    url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80",
+    thumb: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "gold_parchment",
+    name: "Gold Foil Parchment",
+    url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80",
+    thumb: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "white_marble",
+    name: "Pearl White Floral Marble",
+    url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+    thumb: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "midnight_stars",
+    name: "Midnight Celestial Stars",
+    url: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1200&q=80",
+    thumb: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "classic_linen",
+    name: "Classic Linen Canvas",
+    url: "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80",
+    thumb: "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=200&q=80",
+  },
+];
+
+export const CURATED_MUSIC_PLAYLIST = [
+  {
+    id: "shehnai",
+    title: "Traditional Shehnai Mangalyam",
+    duration: "2:45",
+    url: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=indian-traditional-instrument-shehnai-10825.mp3",
+  },
+  {
+    id: "sitar_flute",
+    title: "Royal Sitar & Flute Raga Romance",
+    duration: "3:12",
+    url: "https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3",
+  },
+  {
+    id: "piano_waltz",
+    title: "Romantic Piano & Strings Wedding Waltz",
+    duration: "2:50",
+    url: "https://assets.mixkit.co/music/preview/mixkit-wedding-waltz-piano-music-244.mp3",
+  },
+  {
+    id: "acoustic_love",
+    title: "Acoustic Cinematic Love Melody",
+    duration: "2:30",
+    url: "https://assets.mixkit.co/music/preview/mixkit-romantic-guitar-and-cello-108.mp3",
+  },
+  {
+    id: "festive_dhol",
+    title: "Festive Indian Dhol & Celebration",
+    duration: "2:15",
+    url: "https://assets.mixkit.co/music/preview/mixkit-celebration-spirit-1052.mp3",
+  },
+];
+
 interface LeftPanelProps {
   invitation: Invitation;
   onUpdateField: (field: string, value: any) => void;
+  onUpdateFields?: (updates: Partial<Invitation>) => void;
   onAddElement: (element: Partial<CanvasElement>) => void;
   onSelectElementId: (id: string) => void;
 }
@@ -36,14 +115,23 @@ interface LeftPanelProps {
 export default function LeftPanel({
   invitation,
   onUpdateField,
+  onUpdateFields,
   onAddElement,
   onSelectElementId,
 }: LeftPanelProps) {
   const [activeTab, setActiveTab] = useState<"content" | "layers" | "media" | "elements" | "theme">("content");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
+  const bgImageFileInputRef = useRef<HTMLInputElement>(null);
+  const audioFileInputRef = useRef<HTMLInputElement>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const [replacingElementId, setReplacingElementId] = useState<string | null>(null);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [newBgImageUrl, setNewBgImageUrl] = useState("");
+  const [newAudioUrl, setNewAudioUrl] = useState("");
+  const [isPlayingPreviewAudio, setIsPlayingPreviewAudio] = useState(false);
+  const [activePreviewTrackUrl, setActivePreviewTrackUrl] = useState<string | null>(null);
 
   // Quick preset backgrounds
   const backgroundPresets = [
@@ -56,6 +144,15 @@ export default function LeftPanel({
     { label: "Slate Obsidian", value: "#121316", textColor: "#FFFFFF" },
   ];
 
+  // Atomic state updater to avoid stale state overwrites
+  const updateAtomic = (updates: Partial<Invitation>) => {
+    if (onUpdateFields) {
+      onUpdateFields(updates);
+    } else {
+      Object.entries(updates).forEach(([k, v]) => onUpdateField(k, v));
+    }
+  };
+
   // Helper to find existing text from canvas elements
   const getFieldValue = (key: string, fallback: string = ""): string => {
     const el = (invitation.elements || []).find((e) => e.fieldKey === key || e.id === key);
@@ -64,17 +161,191 @@ export default function LeftPanel({
     return fallback;
   };
 
-  const handleTextContentChange = (fieldKey: string, newValue: string) => {
-    onUpdateField(fieldKey, newValue);
+  // 1. Occasion / Event Title Atomic Handler
+  const handleTitleChange = (newTitle: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (
+        el.fieldKey === "event_title" ||
+        el.fieldKey === "event_subtitle" ||
+        el.id === "event_title" ||
+        el.id === "welcome_eyebrow" ||
+        el.id === "title"
+      ) {
+        return { ...el, text: newTitle };
+      }
+      return el;
+    });
 
-    // Synchronize canvas text element if exists
+    updateAtomic({
+      title: newTitle,
+      description: invitation.description || newTitle,
+      elements: updatedElements,
+    });
+  };
+
+  // 2. Host & Family Note Atomic Handler
+  const handleHostNamesChange = (newHost: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (
+        el.fieldKey === "host_names" ||
+        el.id === "family_header" ||
+        el.id === "host_names" ||
+        el.id === "family_name"
+      ) {
+        return { ...el, text: newHost };
+      }
+      return el;
+    });
+
+    updateAtomic({
+      hostNames: newHost,
+      settings: {
+        ...invitation.settings,
+        familyHostName: newHost,
+      },
+      elements: updatedElements,
+    });
+  };
+
+  // 3. Venue Name Atomic Handler
+  const handleVenueNameChange = (newVenue: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (
+        el.fieldKey === "venue_name" ||
+        el.id === "venue_name" ||
+        el.id === "ceremony_venue"
+      ) {
+        return { ...el, text: newVenue };
+      }
+      return el;
+    });
+
+    updateAtomic({
+      venueName: newVenue,
+      settings: {
+        ...invitation.settings,
+        ceremonyVenue: newVenue,
+      },
+      elements: updatedElements,
+    });
+  };
+
+  // 4. Venue Address Atomic Handler
+  const handleVenueAddressChange = (newAddress: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (
+        el.fieldKey === "venue_address" ||
+        el.id === "venue_address" ||
+        el.id === "ceremony_location"
+      ) {
+        return { ...el, text: newAddress };
+      }
+      return el;
+    });
+
+    updateAtomic({
+      venueAddress: newAddress,
+      settings: {
+        ...invitation.settings,
+        ceremonyLocation: newAddress,
+      },
+      elements: updatedElements,
+    });
+  };
+
+  // 5. Bride & Groom Atomic Handlers
+  const handleBrideNameChange = (newBride: string) => {
+    const groom = getFieldValue("groom_name", "Groom");
+    const coupleText = `${groom} & ${newBride}`;
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (el.fieldKey === "bride_name" || el.id === "bride_name") return { ...el, text: newBride };
+      if (el.fieldKey === "couple_names" || el.id === "couple_names") return { ...el, text: coupleText };
+      return el;
+    });
+    updateAtomic({ elements: updatedElements });
+  };
+
+  const handleGroomNameChange = (newGroom: string) => {
+    const bride = getFieldValue("bride_name", "Bride");
+    const coupleText = `${newGroom} & ${bride}`;
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (el.fieldKey === "groom_name" || el.id === "groom_name") return { ...el, text: newGroom };
+      if (el.fieldKey === "couple_names" || el.id === "couple_names") return { ...el, text: coupleText };
+      return el;
+    });
+    updateAtomic({ elements: updatedElements });
+  };
+
+  // 6. Event Date Atomic Handler
+  const handleDateChange = (newDateStr: string) => {
+    try {
+      const iso = new Date(newDateStr).toISOString();
+      const formatted = new Date(newDateStr).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const updatedElements = (invitation.elements || []).map((el) => {
+        if (el.fieldKey === "event_date" || el.id === "event_date") {
+          return { ...el, text: formatted };
+        }
+        return el;
+      });
+      updateAtomic({
+        eventDate: iso,
+        elements: updatedElements,
+      });
+    } catch {
+      onUpdateField("eventDate", newDateStr);
+    }
+  };
+
+  // 7. Event Time Atomic Handler
+  const handleTimeChange = (newTime: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (el.fieldKey === "event_time" || el.id === "event_time") {
+        return { ...el, text: newTime };
+      }
+      return el;
+    });
+    updateAtomic({
+      eventTime: newTime,
+      settings: {
+        ...invitation.settings,
+        ceremonyTime: newTime,
+      },
+      elements: updatedElements,
+    });
+  };
+
+  // Audio Preview Player
+  const togglePreviewAudio = (audioUrl: string) => {
+    if (!previewAudioRef.current) return;
+    if (isPlayingPreviewAudio && activePreviewTrackUrl === audioUrl) {
+      previewAudioRef.current.pause();
+      setIsPlayingPreviewAudio(false);
+      setActivePreviewTrackUrl(null);
+    } else {
+      previewAudioRef.current.src = audioUrl;
+      previewAudioRef.current.play().then(() => {
+        setIsPlayingPreviewAudio(true);
+        setActivePreviewTrackUrl(audioUrl);
+      }).catch(console.error);
+    }
+  };
+
+  const handleTextContentChange = (fieldKey: string, newValue: string) => {
     const updatedElements = (invitation.elements || []).map((el) => {
       if (el.fieldKey === fieldKey || el.id === fieldKey) {
         return { ...el, text: newValue };
       }
       return el;
     });
-    onUpdateField("elements", updatedElements);
+    updateAtomic({
+      [fieldKey]: newValue,
+      elements: updatedElements,
+    });
   };
 
   const handleUpdateCanvasElementText = (id: string, text: string) => {
@@ -213,6 +484,67 @@ export default function LeftPanel({
         className="hidden"
         onChange={(e) => handleDeviceFileUpload(e, replacingElementId)}
       />
+      {/* Background Image Upload Input */}
+      <input
+        type="file"
+        ref={bgImageFileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const dataUrl = event.target?.result as string;
+            if (dataUrl) {
+              updateAtomic({
+                background: {
+                  ...(invitation.background || { type: "color", value: "#FDFBF7" }),
+                  imageUrl: dataUrl,
+                  imageOpacity: invitation.background?.imageOpacity ?? 0.35,
+                },
+              });
+            }
+          };
+          reader.readAsDataURL(file);
+          e.target.value = "";
+        }}
+      />
+      {/* Background Music MP3 Upload Input */}
+      <input
+        type="file"
+        ref={audioFileInputRef}
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const dataUrl = event.target?.result as string;
+            if (dataUrl) {
+              updateAtomic({
+                settings: {
+                  ...invitation.settings,
+                  enableMusic: true,
+                  musicUrl: dataUrl,
+                  musicTitle: file.name.replace(/\.[^/.]+$/, ""),
+                },
+              });
+            }
+          };
+          reader.readAsDataURL(file);
+          e.target.value = "";
+        }}
+      />
+      {/* Audio element for previewing tracks */}
+      <audio
+        ref={previewAudioRef}
+        onEnded={() => {
+          setIsPlayingPreviewAudio(false);
+          setActivePreviewTrackUrl(null);
+        }}
+      />
 
       {/* Top Tab Switcher */}
       <div className="flex border-b border-stone-200 bg-stone-50/70 p-1">
@@ -263,11 +595,7 @@ export default function LeftPanel({
               <input
                 type="text"
                 value={invitation.title || ""}
-                onChange={(e) => {
-                  onUpdateField("title", e.target.value);
-                  handleTextContentChange("title", e.target.value);
-                  handleTextContentChange("event_title", e.target.value);
-                }}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
@@ -280,7 +608,7 @@ export default function LeftPanel({
                   type="text"
                   placeholder="Bride's Name"
                   value={getFieldValue("bride_name", "")}
-                  onChange={(e) => handleTextContentChange("bride_name", e.target.value)}
+                  onChange={(e) => handleBrideNameChange(e.target.value)}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
@@ -290,7 +618,7 @@ export default function LeftPanel({
                   type="text"
                   placeholder="Groom's Name"
                   value={getFieldValue("groom_name", "")}
-                  onChange={(e) => handleTextContentChange("groom_name", e.target.value)}
+                  onChange={(e) => handleGroomNameChange(e.target.value)}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
@@ -327,11 +655,7 @@ export default function LeftPanel({
                 <input
                   type="date"
                   value={invitation.eventDate ? invitation.eventDate.split("T")[0] : ""}
-                  onChange={(e) => {
-                    const newIso = new Date(e.target.value).toISOString();
-                    onUpdateField("eventDate", newIso);
-                    handleTextContentChange("event_date", e.target.value);
-                  }}
+                  onChange={(e) => handleDateChange(e.target.value)}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
@@ -341,10 +665,7 @@ export default function LeftPanel({
                   type="text"
                   value={invitation.eventTime || getFieldValue("event_time", "")}
                   placeholder="e.g. 5:00 PM onwards"
-                  onChange={(e) => {
-                    onUpdateField("eventTime", e.target.value);
-                    handleTextContentChange("event_time", e.target.value);
-                  }}
+                  onChange={(e) => handleTimeChange(e.target.value)}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
@@ -357,10 +678,7 @@ export default function LeftPanel({
                 type="text"
                 value={invitation.venueName || getFieldValue("venue_name", "")}
                 placeholder="e.g. The Grand Regal Palace"
-                onChange={(e) => {
-                  onUpdateField("venueName", e.target.value);
-                  handleTextContentChange("venue_name", e.target.value);
-                }}
+                onChange={(e) => handleVenueNameChange(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
@@ -371,10 +689,7 @@ export default function LeftPanel({
                 rows={2}
                 value={invitation.venueAddress || getFieldValue("venue_address", "")}
                 placeholder="e.g. Heritage Lawns, Lake Palace Road, Udaipur"
-                onChange={(e) => {
-                  onUpdateField("venueAddress", e.target.value);
-                  handleTextContentChange("venue_address", e.target.value);
-                }}
+                onChange={(e) => handleVenueAddressChange(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
@@ -386,10 +701,7 @@ export default function LeftPanel({
                 type="text"
                 value={invitation.hostNames || getFieldValue("host_names", "")}
                 placeholder="e.g. With best compliments from Sharma & Verma Families"
-                onChange={(e) => {
-                  onUpdateField("hostNames", e.target.value);
-                  handleTextContentChange("host_names", e.target.value);
-                }}
+                onChange={(e) => handleHostNamesChange(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
@@ -1265,6 +1577,331 @@ export default function LeftPanel({
                   className="w-32 rounded-xl border border-stone-200 px-3 py-2 text-xs font-mono uppercase"
                 />
               </div>
+            </div>
+
+            {/* Background Image Studio */}
+            <div className="pt-3 border-t border-stone-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Card Background Texture / Image</span>
+                  </h4>
+                  <p className="text-[10px] text-stone-500">
+                    Add a luxury backdrop texture or custom image behind your design.
+                  </p>
+                </div>
+                {invitation.background?.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateAtomic({
+                        background: {
+                          ...(invitation.background || { type: "color", value: "#FDFBF7" }),
+                          imageUrl: undefined,
+                        },
+                      });
+                    }}
+                    className="text-[10px] text-red-600 font-bold hover:underline flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Remove</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Upload or Preset Buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => bgImageFileInputRef.current?.click()}
+                  className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl border border-dashed border-amber-600/40 bg-amber-50/50 hover:bg-amber-50 text-amber-800 text-xs font-semibold transition"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Image</span>
+                </button>
+                <div className="flex">
+                  <input
+                    type="url"
+                    placeholder="Paste Image URL"
+                    value={newBgImageUrl}
+                    onChange={(e) => setNewBgImageUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newBgImageUrl.trim()) {
+                        e.preventDefault();
+                        updateAtomic({
+                          background: {
+                            ...(invitation.background || { type: "color", value: "#FDFBF7" }),
+                            imageUrl: newBgImageUrl.trim(),
+                            imageOpacity: invitation.background?.imageOpacity ?? 0.35,
+                          },
+                        });
+                        setNewBgImageUrl("");
+                      }
+                    }}
+                    className="w-full rounded-l-xl border border-stone-200 px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newBgImageUrl.trim()) {
+                        updateAtomic({
+                          background: {
+                            ...(invitation.background || { type: "color", value: "#FDFBF7" }),
+                            imageUrl: newBgImageUrl.trim(),
+                            imageOpacity: invitation.background?.imageOpacity ?? 0.35,
+                          },
+                        });
+                        setNewBgImageUrl("");
+                      }
+                    }}
+                    className="px-2.5 rounded-r-xl bg-stone-900 text-white text-[11px] font-bold"
+                  >
+                    Set
+                  </button>
+                </div>
+              </div>
+
+              {/* Luxury Background Presets Carousel / Grid */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">
+                  Or Pick Luxury Preset Texture
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {LUXURY_BACKGROUND_PRESETS.map((preset) => {
+                    const isSelected = invitation.background?.imageUrl === preset.url;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          updateAtomic({
+                            background: {
+                              ...(invitation.background || { type: "color", value: "#FDFBF7" }),
+                              imageUrl: preset.url,
+                              imageOpacity: invitation.background?.imageOpacity ?? 0.35,
+                            },
+                          });
+                        }}
+                        className={`relative rounded-xl overflow-hidden border text-left transition group ${
+                          isSelected
+                            ? "border-amber-600 ring-2 ring-amber-500/30"
+                            : "border-stone-200 hover:border-amber-400"
+                        }`}
+                      >
+                        <div
+                          className="h-12 w-full bg-cover bg-center"
+                          style={{ backgroundImage: `url(${preset.thumb})` }}
+                        />
+                        <div className="p-1 bg-white/95 text-[9px] font-semibold text-stone-800 truncate">
+                          {preset.name}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Opacity Slider if background image is active */}
+              {invitation.background?.imageUrl && (
+                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-stone-700">Backdrop Opacity</span>
+                    <span className="font-mono text-amber-700 font-bold">
+                      {Math.round((invitation.background?.imageOpacity ?? 0.35) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.05"
+                    max="1"
+                    step="0.05"
+                    value={invitation.background?.imageOpacity ?? 0.35}
+                    onChange={(e) => {
+                      updateAtomic({
+                        background: {
+                          ...(invitation.background || { type: "color", value: "#FDFBF7" }),
+                          imageOpacity: parseFloat(e.target.value),
+                        },
+                      });
+                    }}
+                    className="w-full accent-amber-600 cursor-pointer"
+                  />
+                  <p className="text-[10px] text-stone-500">
+                    Adjust transparency to keep text crisp and readable.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Background Music Studio */}
+            <div className="pt-3 border-t border-stone-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                    <Music className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Background Celebration Music</span>
+                  </h4>
+                  <p className="text-[10px] text-stone-500">
+                    Plays atmospheric music when guests open the invitation.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={invitation.settings?.enableMusic !== false}
+                    onChange={(e) => {
+                      updateAtomic({
+                        settings: {
+                          ...invitation.settings,
+                          enableMusic: e.target.checked,
+                          musicUrl: invitation.settings?.musicUrl || CURATED_MUSIC_PLAYLIST[0].url,
+                          musicTitle: invitation.settings?.musicTitle || CURATED_MUSIC_PLAYLIST[0].title,
+                        },
+                      });
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {invitation.settings?.enableMusic !== false && (
+                <div className="space-y-2.5 pt-1">
+                  {/* Active Selected Track Banner */}
+                  <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between">
+                    <div className="min-w-0 pr-2">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-amber-900 block">
+                        Currently Selected Track
+                      </span>
+                      <span className="text-xs font-bold text-stone-900 truncate block">
+                        {invitation.settings?.musicTitle || "Traditional Shehnai Mangalyam"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const trackUrl = invitation.settings?.musicUrl || CURATED_MUSIC_PLAYLIST[0].url;
+                        togglePreviewAudio(trackUrl);
+                      }}
+                      className="w-8 h-8 rounded-full bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center shrink-0 shadow-sm transition active:scale-95"
+                    >
+                      {isPlayingPreviewAudio && activePreviewTrackUrl === (invitation.settings?.musicUrl || CURATED_MUSIC_PLAYLIST[0].url) ? (
+                        <Pause className="w-3.5 h-3.5" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5 translate-x-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Curated Music Track List */}
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">
+                      Curated Wedding Soundtracks
+                    </label>
+                    <div className="space-y-1.5">
+                      {CURATED_MUSIC_PLAYLIST.map((track) => {
+                        const isCurrent = (invitation.settings?.musicUrl || CURATED_MUSIC_PLAYLIST[0].url) === track.url;
+                        const isPlaying = isPlayingPreviewAudio && activePreviewTrackUrl === track.url;
+
+                        return (
+                          <div
+                            key={track.id}
+                            className={`flex items-center justify-between p-2 rounded-xl border transition ${
+                              isCurrent
+                                ? "bg-amber-50/60 border-amber-500 ring-1 ring-amber-500/20"
+                                : "bg-white border-stone-200 hover:border-stone-300"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => togglePreviewAudio(track.url)}
+                              className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center shrink-0 transition"
+                              title={isPlaying ? "Pause Preview" : "Listen Preview"}
+                            >
+                              {isPlaying ? (
+                                <Pause className="w-3.5 h-3.5 text-amber-700" />
+                              ) : (
+                                <Play className="w-3.5 h-3.5 text-stone-600 translate-x-0.5" />
+                              )}
+                            </button>
+
+                            <div className="min-w-0 flex-1 px-2.5">
+                              <p className="text-xs font-semibold text-stone-900 truncate">
+                                {track.title}
+                              </p>
+                              <p className="text-[10px] text-stone-500">
+                                Duration: {track.duration}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateAtomic({
+                                  settings: {
+                                    ...invitation.settings,
+                                    enableMusic: true,
+                                    musicUrl: track.url,
+                                    musicTitle: track.title,
+                                  },
+                                });
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${
+                                isCurrent
+                                  ? "bg-amber-600 text-white shadow-xs"
+                                  : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                              }`}
+                            >
+                              {isCurrent ? "Active" : "Use"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Upload Custom MP3 or URL */}
+                  <div className="pt-2 border-t border-stone-200/60 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => audioFileInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-1.5 p-2 rounded-xl border border-dashed border-stone-300 hover:border-amber-600 hover:bg-amber-50/50 text-stone-700 text-xs font-semibold transition"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Upload Your Own MP3 Audio</span>
+                    </button>
+                    <div className="flex">
+                      <input
+                        type="url"
+                        placeholder="Or Paste Custom MP3 URL"
+                        value={newAudioUrl}
+                        onChange={(e) => setNewAudioUrl(e.target.value)}
+                        className="w-full rounded-l-xl border border-stone-200 px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newAudioUrl.trim()) {
+                            updateAtomic({
+                              settings: {
+                                ...invitation.settings,
+                                enableMusic: true,
+                                musicUrl: newAudioUrl.trim(),
+                                musicTitle: "Custom Audio Track",
+                              },
+                            });
+                            setNewAudioUrl("");
+                          }
+                        }}
+                        className="px-2.5 rounded-r-xl bg-stone-900 text-white text-[11px] font-bold"
+                      >
+                        Set
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Interactive Module Toggles */}

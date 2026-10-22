@@ -20,6 +20,9 @@ export interface BackgroundConfig {
   secondaryColor?: string;
   angle?: number;
   opacity?: number;
+  imageUrl?: string;
+  imageOpacity?: number;
+  imageOverlay?: string;
 }
 
 export type ElementType =
@@ -200,6 +203,9 @@ export interface InvitationSettings {
   couple2CeremonyMapUrl?: string;
   venueEvents?: VenueEventItem[];
   contacts?: ContactItem[];
+  musicTitle?: string;
+  milestones?: { id: string; title: string; year: string; description: string }[];
+  travelInfo?: { airport?: string; railway?: string; accommodation?: string; parking?: string };
 }
 
 export interface InvitationImage {
@@ -290,6 +296,18 @@ export interface AdminSettings {
   currency?: string;
   adminPin: string;
   updatedAt?: string;
+
+  // Payment Gateway Configuration
+  activeGateway?: 'upi' | 'phonepe' | 'razorpay' | 'all';
+  upiEnabled?: boolean;
+  phonepeEnabled?: boolean;
+  phonepeMerchantId?: string;
+  phonepeSaltKey?: string;
+  phonepeSaltIndex?: string;
+  phonepeEnv?: 'UAT' | 'PRODUCTION';
+  razorpayEnabled?: boolean;
+  razorpayKeyId?: string;
+  razorpayKeySecret?: string;
 }
 
 

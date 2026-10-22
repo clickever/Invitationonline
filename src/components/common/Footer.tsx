@@ -110,13 +110,6 @@ export default function Footer() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900/80 mb-4">
               Platform
             </h3>
-            <ul className="space-y-2.5 text-sm mb-4">
-              <li>
-                <Link href="/admin" className="text-amber-800 font-medium hover:text-amber-900 transition flex items-center gap-1.5">
-                  <span>🔐 Admin Backend</span>
-                </Link>
-              </li>
-            </ul>
             <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200/60 text-xs text-amber-950">
               ✨ <strong>Instant UPI Checkout:</strong> Seamless payment via Google Pay, PhonePe, Paytm & dynamic QR code per invitation.
             </div>

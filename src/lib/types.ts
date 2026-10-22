@@ -210,6 +210,8 @@ export interface UserProfile {
   id: string;
   email: string;
   fullName: string;
+  phone?: string;
+  mobileNumber?: string;
   password?: string;
   avatarUrl?: string;
   plan: 'free' | 'premium' | 'pro';

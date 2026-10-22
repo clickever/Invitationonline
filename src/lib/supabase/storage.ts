@@ -11,143 +11,7 @@ const LOCAL_STORAGE_ADMIN_SETTINGS_KEY = "invitestudio_admin_settings";
 const LOCAL_STORAGE_CUSTOM_TEMPLATES_KEY = "invitestudio_custom_templates";
 const LOCAL_STORAGE_TEMPLATE_PRICING_KEY = "invitestudio_template_pricing";
 
-export const DEFAULT_DEMO_USER: UserProfile = {
-  id: "usr_demo_8829",
-  email: "sarah.designer@example.com",
-  fullName: "Sarah Jenkins",
-  avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-  plan: "free",
-  createdAt: new Date().toISOString(),
-};
-
-// Initial sample invitations for demo/local storage
-const INITIAL_DEMO_INVITATIONS: Invitation[] = [
-  {
-    id: "inv_sample_01",
-    userId: "usr_demo_8829",
-    templateId: "wedding-001",
-    slug: "ananya-and-arjun-wedding",
-    title: "Ananya & Arjun Wedding Celebration",
-    eventType: "wedding",
-    eventDate: "2026-10-24T17:00:00.000Z",
-    eventTime: "5:00 PM onwards",
-    venueName: "The Grand Oberoi Palace",
-    venueAddress: "Heritage Lawns, Lake Palace Road, Udaipur, Rajasthan",
-    hostNames: "Sharma & Verma Families",
-    rsvpDeadline: "2026-10-10",
-    description: "Join us in celebrating the wedding union of Ananya and Arjun in beautiful Udaipur.",
-    canvas: { width: 1080, height: 1920 },
-    background: { type: "color", value: "#FDFBF7" },
-    elements: getTemplateById("wedding-001")?.elements || [],
-    settings: {
-      enableCountdown: true,
-      enableRsvp: true,
-      enableMap: true,
-      enableCalendar: true,
-      enableGallery: true,
-      enableMusic: false,
-      musicUrl: "",
-      isWatermarkHidden: false,
-      themeColor: "#D4AF37",
-      whatsappPhone: "+919876543210",
-    },
-    isPublished: true,
-    isPremium: false,
-    viewsCount: 142,
-    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-    images: [
-      {
-        id: "img_1",
-        invitationId: "inv_sample_01",
-        url: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80",
-        caption: "Our first trip together",
-        sortOrder: 1,
-      },
-      {
-        id: "img_2",
-        invitationId: "inv_sample_01",
-        url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
-        caption: "Sunset strolls",
-        sortOrder: 2,
-      },
-    ],
-  },
-  {
-    id: "inv_sample_02",
-    userId: "usr_demo_8829",
-    templateId: "birthday-001",
-    slug: "richard-50th-gilded-soiree",
-    title: "Richard's 50th Golden Milestone",
-    eventType: "birthday",
-    eventDate: "2026-11-27T19:00:00.000Z",
-    eventTime: "7:00 PM",
-    venueName: "The Gilded Ballroom at The Ritz",
-    venueAddress: "100 Central Park South, New York, NY",
-    hostNames: "Sterling Family",
-    rsvpDeadline: "2026-11-15",
-    description: "A black-tie evening with dinner, dancing, and champagne to celebrate Richard's 50th.",
-    canvas: { width: 1080, height: 1920 },
-    background: { type: "color", value: "#0D0D0D" },
-    elements: getTemplateById("birthday-001")?.elements || [],
-    settings: {
-      enableCountdown: true,
-      enableRsvp: true,
-      enableMap: true,
-      enableCalendar: true,
-      enableGallery: false,
-      enableMusic: false,
-      musicUrl: "",
-      isWatermarkHidden: true,
-      themeColor: "#E6C687",
-      whatsappPhone: "+12125550199",
-    },
-    isPublished: false,
-    isPremium: true,
-    viewsCount: 38,
-    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
-
-const INITIAL_DEMO_RSVPS: RsvpSubmission[] = [
-  {
-    id: "rsvp_01",
-    invitationId: "inv_sample_01",
-    guestName: "Priya & Siddharth Mehta",
-    email: "priya.mehta@example.com",
-    phone: "+91 98200 12345",
-    attendanceStatus: "attending",
-    guestsCount: 2,
-    dietaryRequirements: "Vegetarian",
-    message: "Cannot wait to celebrate with you both in Udaipur!",
-    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: "rsvp_02",
-    invitationId: "inv_sample_01",
-    guestName: "Marcus Vance",
-    email: "marcus.v@example.com",
-    phone: "+1 415 555 0192",
-    attendanceStatus: "attending",
-    guestsCount: 1,
-    dietaryRequirements: "No nuts",
-    message: "Booking flights this week. Huge congratulations!",
-    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-  {
-    id: "rsvp_03",
-    invitationId: "inv_sample_01",
-    guestName: "Rohan & Aarti Kapoor",
-    email: "rohan.kapoor@example.com",
-    phone: "+91 98111 88776",
-    attendanceStatus: "maybe",
-    guestsCount: 2,
-    dietaryRequirements: "None",
-    message: "Checking work schedule, will confirm soon!",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
+const LOCAL_STORAGE_GUEST_DRAFT_PREFIX = "invitestudio_guest_draft_";
 
 // Helper to access LocalStorage safely in Next.js SSR
 function getLocalItem<T>(key: string, fallback: T): T {
@@ -182,16 +46,30 @@ export function getAllRegisteredUsers(): UserProfile[] {
   return getLocalItem<UserProfile[]>(LOCAL_STORAGE_USERS_LIST_KEY, []);
 }
 
-export function registerUser(fullName: string, email: string, password?: string): { success: boolean; user?: UserProfile; error?: string } {
+export function registerUser(
+  fullName: string,
+  email: string,
+  password?: string,
+  mobileNumber?: string
+): { success: boolean; user?: UserProfile; error?: string } {
   const cleanEmail = email.trim().toLowerCase();
+  const cleanMobile = mobileNumber ? mobileNumber.trim() : "";
   const users = getAllRegisteredUsers();
+
   if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
     return { success: false, error: "An account with this email address already exists. Please log in." };
   }
+
+  if (cleanMobile && users.some((u) => (u.mobileNumber && u.mobileNumber.trim() === cleanMobile) || (u.phone && u.phone.trim() === cleanMobile))) {
+    return { success: false, error: "An account with this mobile number already exists. Please log in." };
+  }
+
   const newUser: UserProfile = {
     id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     email: cleanEmail,
     fullName: fullName.trim(),
+    phone: cleanMobile,
+    mobileNumber: cleanMobile,
     password: password || "",
     avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim())}`,
     plan: "free",
@@ -203,16 +81,26 @@ export function registerUser(fullName: string, email: string, password?: string)
   return { success: true, user: newUser };
 }
 
-export function loginUser(email: string, password?: string): { success: boolean; user?: UserProfile; error?: string } {
-  const cleanEmail = email.trim().toLowerCase();
+export function loginUser(
+  identifier: string,
+  password?: string
+): { success: boolean; user?: UserProfile; error?: string } {
+  const cleanId = identifier.trim().toLowerCase();
   const users = getAllRegisteredUsers();
-  const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
-  
+  const user = users.find(
+    (u) =>
+      u.email.toLowerCase() === cleanId ||
+      (u.mobileNumber && u.mobileNumber.trim() === identifier.trim()) ||
+      (u.phone && u.phone.trim() === identifier.trim())
+  );
+
   if (!user) {
-    // If not found in local users list, auto-create a user profile for valid email to keep onboarding seamless
-    const namePart = cleanEmail.split("@")[0];
-    const capitalized = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-    return registerUser(capitalized, cleanEmail, password);
+    if (cleanId.includes("@")) {
+      const namePart = cleanId.split("@")[0];
+      const capitalized = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+      return registerUser(capitalized, cleanId, password);
+    }
+    return { success: false, error: "No account found with this email or mobile number. Please create an account." };
   }
 
   // Password check if password was set
@@ -228,6 +116,31 @@ export function logoutUser(): void {
   setCurrentUser(null);
 }
 
+// Guest Draft Helpers
+export function getGuestDraft(templateId: string): Invitation | null {
+  return getLocalItem<Invitation | null>(`${LOCAL_STORAGE_GUEST_DRAFT_PREFIX}${templateId}`, null);
+}
+
+export function saveGuestDraft(templateId: string, invitation: Invitation): void {
+  setLocalItem(`${LOCAL_STORAGE_GUEST_DRAFT_PREFIX}${templateId}`, invitation);
+}
+
+export function clearGuestDraft(templateId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(`${LOCAL_STORAGE_GUEST_DRAFT_PREFIX}${templateId}`);
+  } catch (err) {
+    console.error("Failed to clear guest draft:", err);
+  }
+}
+
+export async function assignInvitationToUser(invitationId: string, userId: string): Promise<Invitation | null> {
+  const invite = await getInvitationById(invitationId);
+  if (!invite) return null;
+  const updated: Invitation = { ...invite, userId };
+  await saveInvitation(updated);
+  return updated;
+}
 
 // Invitations Store
 export async function getAllUserInvitations(userId?: string): Promise<Invitation[]> {
@@ -247,8 +160,8 @@ export async function getAllUserInvitations(userId?: string): Promise<Invitation
 
   // Local Storage Fallback
   let items = getLocalItem<Invitation[]>(LOCAL_STORAGE_INVITATIONS_KEY, []);
-  if (!items || items.length === 0) {
-    items = INITIAL_DEMO_INVITATIONS;
+  if (!items) {
+    items = [];
     setLocalItem(LOCAL_STORAGE_INVITATIONS_KEY, items);
   }
 
@@ -399,8 +312,8 @@ export async function getRsvpsForInvitation(invitationId: string): Promise<RsvpS
   }
 
   let rsvps = getLocalItem<RsvpSubmission[]>(LOCAL_STORAGE_RSVPS_KEY, []);
-  if (!rsvps || rsvps.length === 0) {
-    rsvps = INITIAL_DEMO_RSVPS;
+  if (!rsvps) {
+    rsvps = [];
     setLocalItem(LOCAL_STORAGE_RSVPS_KEY, rsvps);
   }
   return rsvps.filter((r) => r.invitationId === invitationId);
@@ -410,8 +323,8 @@ export async function getAllUserRsvps(userId: string): Promise<RsvpSubmission[]>
   const invitations = await getAllUserInvitations(userId);
   const inviteIds = new Set(invitations.map((i) => i.id));
   let rsvps = getLocalItem<RsvpSubmission[]>(LOCAL_STORAGE_RSVPS_KEY, []);
-  if (!rsvps || rsvps.length === 0) {
-    rsvps = INITIAL_DEMO_RSVPS;
+  if (!rsvps) {
+    rsvps = [];
     setLocalItem(LOCAL_STORAGE_RSVPS_KEY, rsvps);
   }
   return rsvps.filter((r) => inviteIds.has(r.invitationId));
@@ -443,8 +356,8 @@ export async function submitRsvp(rsvp: Omit<RsvpSubmission, "id" | "createdAt">)
   }
 
   let rsvps = getLocalItem<RsvpSubmission[]>(LOCAL_STORAGE_RSVPS_KEY, []);
-  if (!rsvps || rsvps.length === 0) {
-    rsvps = INITIAL_DEMO_RSVPS;
+  if (!rsvps) {
+    rsvps = [];
   }
   rsvps.unshift(newSubmission);
   setLocalItem(LOCAL_STORAGE_RSVPS_KEY, rsvps);
@@ -541,12 +454,18 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   upiId: "invitestudio@upi",
   payeeName: "InviteStudio Events",
   defaultPrice: 1100,
+  defaultPublicationPrice: 1100,
   currency: "INR",
-  adminPin: "admin123",
+  adminPin: "Nithin@fxodigital",
 };
 
 export function getAdminSettings(): AdminSettings {
-  return getLocalItem<AdminSettings>(LOCAL_STORAGE_ADMIN_SETTINGS_KEY, DEFAULT_ADMIN_SETTINGS);
+  const settings = getLocalItem<AdminSettings>(LOCAL_STORAGE_ADMIN_SETTINGS_KEY, DEFAULT_ADMIN_SETTINGS);
+  return {
+    ...DEFAULT_ADMIN_SETTINGS,
+    ...settings,
+    adminPin: settings.adminPin || "Nithin@fxodigital",
+  };
 }
 
 export function saveAdminSettings(settings: Partial<AdminSettings>): AdminSettings {

@@ -131,17 +131,6 @@ export default function Navbar() {
           >
             Dashboard
           </Link>
-          <Link
-            href="/admin"
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-              pathname?.startsWith("/admin")
-                ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-                : "border-amber-200/80 bg-amber-50/80 text-amber-900 hover:bg-amber-100 hover:border-amber-300"
-            }`}
-          >
-            <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
-            <span>Admin</span>
-          </Link>
         </nav>
 
         {/* Action CTAs & Profile */}
@@ -200,14 +189,6 @@ export default function Navbar() {
                   >
                     <User className="h-4 w-4 text-amber-600" />
                     <span>Profile & Plan</span>
-                  </Link>
-                  <Link
-                    href="/admin"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-amber-900 bg-amber-50/60 rounded-xl hover:bg-amber-100"
-                  >
-                    <ShieldCheck className="h-4 w-4 text-amber-700" />
-                    <span>Admin Backend</span>
                   </Link>
                   <button
                     onClick={handleSignOut}
@@ -278,13 +259,6 @@ export default function Navbar() {
               className="block px-3 py-2 text-base font-semibold text-stone-800 rounded-lg hover:bg-amber-50"
             >
               My Dashboard
-            </Link>
-            <Link
-              href="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-base font-semibold text-amber-900 bg-amber-50/80 rounded-lg hover:bg-amber-100"
-            >
-              Admin Backend
             </Link>
           </div>
 

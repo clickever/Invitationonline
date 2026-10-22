@@ -7,7 +7,9 @@ import { CanvasElement, Invitation } from "@/lib/types";
 import { 
   getInvitationById, 
   saveInvitation, 
-  getCurrentUser 
+  getCurrentUser,
+  getGuestDraft,
+  saveGuestDraft 
 } from "@/lib/supabase/storage";
 import { getTemplateById } from "@/lib/templates";
 import { generateSlug } from "@/lib/utils";
@@ -18,7 +20,7 @@ import CanvasStage from "@/components/editor/CanvasStage";
 import MobileToolbar from "@/components/editor/MobileToolbar";
 import PreviewModal from "@/components/editor/PreviewModal";
 import ShareModal from "@/components/invitation/ShareModal";
-import UpiPaymentModal from "@/components/payments/UpiPaymentModal";
+import PublishCheckoutModal from "@/components/payments/PublishCheckoutModal";
 
 export default function VisualEditorPage() {
   const params = useParams();
@@ -32,7 +34,7 @@ export default function VisualEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [upiModalOpen, setUpiModalOpen] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Undo / Redo History Stack
@@ -64,20 +66,20 @@ export default function VisualEditorPage() {
       setLoading(true);
       try {
         const user = getCurrentUser();
-        if (!user) {
-          router.push(`/login?redirect=/editor/${id}`);
-          return;
-        }
+        const userId = user ? user.id : "guest";
 
         let invite = await getInvitationById(id);
+        if (!invite) {
+          invite = getGuestDraft(id);
+        }
 
-        // If this ID is a template ID, initialize a new invitation from it
-        if (!invite && (id.startsWith("wedding-") || id.startsWith("birthday-") || id.startsWith("engagement-") || id.startsWith("babyshower-") || id.startsWith("housewarming-") || id.startsWith("anniversary-"))) {
+        // If this ID is a template ID or custom template, initialize an invitation from it
+        if (!invite) {
           const tpl = getTemplateById(id);
           if (tpl) {
             invite = {
               id: `inv_${Date.now()}`,
-              userId: user.id,
+              userId,
               templateId: tpl.id,
               slug: generateSlug(tpl.name),
               title: tpl.name,
@@ -107,7 +109,13 @@ export default function VisualEditorPage() {
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             };
-            await saveInvitation(invite);
+
+            if (user) {
+              await saveInvitation(invite);
+            } else {
+              saveGuestDraft(id, invite);
+              saveGuestDraft(invite.id, invite);
+            }
           }
         }
 
@@ -189,6 +197,13 @@ export default function VisualEditorPage() {
   const updateInvitationState = (updated: Invitation) => {
     setInvitation(updated);
     pushHistory(updated);
+
+    if (getCurrentUser()) {
+      saveInvitation(updated).catch(console.error);
+    } else {
+      saveGuestDraft(id, updated);
+      saveGuestDraft(updated.id, updated);
+    }
   };
 
   const handleUpdateField = (field: string, value: any) => {
@@ -262,7 +277,12 @@ export default function VisualEditorPage() {
     if (!invitation) return;
     setIsSaving(true);
     try {
-      await saveInvitation(invitation);
+      if (getCurrentUser()) {
+        await saveInvitation(invitation);
+      } else {
+        saveGuestDraft(id, invitation);
+        saveGuestDraft(invitation.id, invitation);
+      }
       showToast("All changes saved successfully!");
     } catch (err) {
       console.error("Save error:", err);
@@ -274,50 +294,13 @@ export default function VisualEditorPage() {
 
   const handlePublish = async () => {
     if (!invitation) return;
-
-    // Check if publication requires payment (isPremium and not yet published)
-    if (invitation.isPremium && !invitation.isPublished) {
-      setUpiModalOpen(true);
-      return;
-    }
-
-    // Direct publish for 3 free templates or previously published
-    setIsSaving(true);
-    try {
-      const published = {
-        ...invitation,
-        isPublished: true,
-      };
-      await saveInvitation(published);
-      setInvitation(published);
-      showToast("🎉 Invitation published live!");
-      setShareOpen(true);
-    } catch (err) {
-      console.error("Publish error:", err);
-      showToast("Failed to publish invitation.");
-    } finally {
-      setIsSaving(false);
-    }
+    setPublishModalOpen(true);
   };
 
-  const handlePaymentSuccess = async () => {
-    if (!invitation) return;
-    setUpiModalOpen(false);
-    setIsSaving(true);
-    try {
-      const published = {
-        ...invitation,
-        isPublished: true,
-      };
-      await saveInvitation(published);
-      setInvitation(published);
-      showToast("🎉 Payment confirmed! Your invitation is now published live!");
-      setShareOpen(true);
-    } catch (err) {
-      console.error("Publish after payment error:", err);
-    } finally {
-      setIsSaving(false);
-    }
+  const handlePublishedSuccess = (updatedInvite: Invitation) => {
+    setInvitation(updatedInvite);
+    pushHistory(updatedInvite);
+    showToast("🎉 Invitation successfully published!");
   };
 
   if (loading) {
@@ -440,12 +423,12 @@ export default function VisualEditorPage() {
         themeColor={invitation.settings?.themeColor}
       />
 
-      {/* Dynamic UPI Payment Modal */}
-      <UpiPaymentModal
-        isOpen={upiModalOpen}
-        onClose={() => setUpiModalOpen(false)}
+      {/* Dynamic UPI Payment / Auth / Publish Checkout Modal */}
+      <PublishCheckoutModal
+        isOpen={publishModalOpen}
+        onClose={() => setPublishModalOpen(false)}
         invitation={invitation}
-        onSuccess={handlePaymentSuccess}
+        onPublishedSuccess={handlePublishedSuccess}
       />
     </div>
   );

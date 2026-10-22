@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   ShieldCheck, 
   Users, 
@@ -20,9 +20,8 @@ import { getAdminSettings } from "@/lib/supabase/storage";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,89 +29,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const auth = sessionStorage.getItem("invitestudio_admin_authenticated");
       if (auth === "true") {
         setIsAuthenticated(true);
+        setLoading(false);
+      } else {
+        router.replace("/admin-login");
       }
-      setLoading(false);
     }
-  }, []);
-
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const settings = getAdminSettings();
-    const targetPin = settings.adminPin || "admin123";
-
-    if (pinInput.trim() === targetPin) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem("invitestudio_admin_authenticated", "true");
-      setPinError(false);
-    } else {
-      setPinError(true);
-    }
-  };
+  }, [router]);
 
   const handleLogoutAdmin = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("invitestudio_admin_authenticated");
+    }
     setIsAuthenticated(false);
-    sessionStorage.removeItem("invitestudio_admin_authenticated");
-    setPinInput("");
+    router.push("/admin-login");
   };
 
-  if (loading) {
+  if (loading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-stone-900 flex items-center justify-center text-white">
-        Loading admin console...
-      </div>
-    );
-  }
-
-  // Admin PIN Gate
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-stone-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-stone-900 border border-stone-800 rounded-3xl p-8 shadow-2xl text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 mx-auto mb-4 border border-amber-500/20">
-            <Lock className="h-7 w-7" />
-          </div>
-          <h2 className="font-serif text-2xl font-bold text-white">Admin Portal Access</h2>
-          <p className="text-xs text-stone-400 mt-2 mb-6">
-            Enter your admin PIN to manage registered users, UPI payment records, and template pricing.
-          </p>
-
-          <form onSubmit={handlePinSubmit} className="space-y-4">
-            <div>
-              <input
-                type="password"
-                placeholder="Enter Admin PIN (Default: admin123)"
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  setPinError(false);
-                }}
-                className="w-full rounded-2xl bg-stone-950 border border-stone-800 px-4 py-3 text-center text-sm font-mono text-white placeholder-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              {pinError && (
-                <p className="text-xs text-red-400 mt-2">
-                  Incorrect PIN. Please try again or check your admin configuration.
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="w-full rounded-2xl bg-amber-600 py-3 text-xs font-bold text-white shadow-gold hover:bg-amber-500 transition active:scale-95"
-            >
-              Unlock Admin Console
-            </button>
-
-            <div className="pt-4 border-t border-stone-800">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-300"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Return to Main Website</span>
-              </Link>
-            </div>
-          </form>
+      <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center p-4 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 mb-3 border border-amber-500/20 animate-pulse">
+          <ShieldCheck className="h-6 w-6" />
         </div>
+        <p className="text-xs text-stone-400">Verifying administrator authorization...</p>
       </div>
     );
   }

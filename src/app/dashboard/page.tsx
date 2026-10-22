@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Layers, 
   Send, 
@@ -14,7 +15,7 @@ import {
   Trash2, 
   CheckCircle2, 
   Clock, 
-  Users,
+  Users, 
   Sparkles 
 } from "lucide-react";
 import { 
@@ -27,6 +28,7 @@ import { Invitation } from "@/lib/types";
 import ShareModal from "@/components/invitation/ShareModal";
 
 export default function DashboardOverviewPage() {
+  const router = useRouter();
   const [stats, setStats] = useState({
     totalInvitations: 0,
     draftInvitations: 0,
@@ -42,10 +44,13 @@ export default function DashboardOverviewPage() {
     setLoading(true);
     try {
       const user = getCurrentUser();
-      const userId = user?.id || "usr_demo_8829";
+      if (!user) {
+        router.push("/login?redirect=/dashboard");
+        return;
+      }
       const [s, list] = await Promise.all([
-        getDashboardStats(userId),
-        getAllUserInvitations(userId),
+        getDashboardStats(user.id),
+        getAllUserInvitations(user.id),
       ]);
       setStats(s);
       setInvitations(list);

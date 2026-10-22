@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   FileText, 
   PlusSquare, 
@@ -14,7 +14,12 @@ import {
   Type, 
   Music,
   Eye,
-  Check
+  Check,
+  Upload,
+  Trash2,
+  Camera,
+  Layers,
+  ChevronDown
 } from "lucide-react";
 import { CanvasElement, Invitation, InvitationSettings } from "@/lib/types";
 
@@ -31,7 +36,11 @@ export default function LeftPanel({
   onAddElement,
   onSelectElementId,
 }: LeftPanelProps) {
-  const [activeTab, setActiveTab] = useState<"content" | "elements" | "theme" | "settings">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "layers" | "media" | "elements" | "theme">("content");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceFileInputRef = useRef<HTMLInputElement>(null);
+  const [replacingElementId, setReplacingElementId] = useState<string | null>(null);
+  const [newImageUrl, setNewImageUrl] = useState("");
 
   // Quick preset backgrounds
   const backgroundPresets = [
@@ -44,6 +53,14 @@ export default function LeftPanel({
     { label: "Slate Obsidian", value: "#121316", textColor: "#FFFFFF" },
   ];
 
+  // Helper to find existing text from canvas elements
+  const getFieldValue = (key: string, fallback: string = ""): string => {
+    const el = (invitation.elements || []).find((e) => e.fieldKey === key || e.id === key);
+    if (el && el.text) return el.text;
+    if ((invitation as any)[key]) return (invitation as any)[key];
+    return fallback;
+  };
+
   const handleTextContentChange = (fieldKey: string, newValue: string) => {
     onUpdateField(fieldKey, newValue);
 
@@ -54,6 +71,41 @@ export default function LeftPanel({
       }
       return el;
     });
+    onUpdateField("elements", updatedElements);
+  };
+
+  const handleUpdateCanvasElementText = (id: string, text: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (el.id === id) {
+        return { ...el, text };
+      }
+      return el;
+    });
+    onUpdateField("elements", updatedElements);
+  };
+
+  const handleUpdateCanvasElementFontSize = (id: string, fontSize: number) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (el.id === id) {
+        return { ...el, fontSize };
+      }
+      return el;
+    });
+    onUpdateField("elements", updatedElements);
+  };
+
+  const handleUpdateCanvasElementColor = (id: string, color: string) => {
+    const updatedElements = (invitation.elements || []).map((el) => {
+      if (el.id === id) {
+        return { ...el, color };
+      }
+      return el;
+    });
+    onUpdateField("elements", updatedElements);
+  };
+
+  const handleDeleteElement = (id: string) => {
+    const updatedElements = (invitation.elements || []).filter((el) => el.id !== id);
     onUpdateField("elements", updatedElements);
   };
 
@@ -78,22 +130,102 @@ export default function LeftPanel({
     onSelectElementId(id);
   };
 
+  // Upload or replace image from local device via FileReader DataURL
+  const handleDeviceFileUpload = (e: React.ChangeEvent<HTMLInputElement>, targetElementId?: string | null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (targetElementId) {
+        // Replace existing image
+        const updatedElements = (invitation.elements || []).map((el) =>
+          el.id === targetElementId ? { ...el, src: dataUrl } : el
+        );
+        onUpdateField("elements", updatedElements);
+      } else {
+        // Add new image element to canvas
+        const newImg: CanvasElement = {
+          id: `img_${Date.now()}`,
+          type: "image",
+          src: dataUrl,
+          x: 240,
+          y: 500,
+          width: 600,
+          height: 600,
+          borderRadius: 24,
+          zIndex: 3,
+        };
+        onAddElement(newImg);
+        onSelectElementId(newImg.id);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleAddImageFromUrl = () => {
+    if (!newImageUrl.trim()) return;
+    const newImg: CanvasElement = {
+      id: `img_${Date.now()}`,
+      type: "image",
+      src: newImageUrl.trim(),
+      x: 240,
+      y: 500,
+      width: 600,
+      height: 600,
+      borderRadius: 24,
+      zIndex: 3,
+    };
+    onAddElement(newImg);
+    onSelectElementId(newImg.id);
+    setNewImageUrl("");
+  };
+
+  const handleReplaceImageUrl = (elementId: string, url: string) => {
+    const updatedElements = (invitation.elements || []).map((el) =>
+      el.id === elementId ? { ...el, src: url } : el
+    );
+    onUpdateField("elements", updatedElements);
+  };
+
+  const textElements = (invitation.elements || []).filter((el) => el.type === "text");
+  const imageElements = (invitation.elements || []).filter((el) => el.type === "image");
+
   return (
     <aside className="w-80 border-r border-stone-200 bg-white flex flex-col shrink-0 z-20 overflow-hidden h-[calc(100vh-4rem)]">
+      {/* Hidden File Input for Device Image Uploads */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleDeviceFileUpload(e, null)}
+      />
+      <input
+        type="file"
+        ref={replaceFileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleDeviceFileUpload(e, replacingElementId)}
+      />
+
       {/* Top Tab Switcher */}
       <div className="flex border-b border-stone-200 bg-stone-50/70 p-1">
         {[
-          { id: "content", label: "Content", icon: FileText },
+          { id: "content", label: "Details", icon: FileText },
+          { id: "layers", label: "Texts", icon: Type },
+          { id: "media", label: "Photos", icon: ImageIcon },
           { id: "elements", label: "Add", icon: PlusSquare },
           { id: "theme", label: "Style", icon: Palette },
-          { id: "settings", label: "Widgets", icon: Sliders },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex flex-col items-center justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition ${
+              className={`flex-1 flex flex-col items-center justify-center py-2 text-[9px] font-bold uppercase tracking-wider rounded-xl transition ${
                 activeTab === tab.id
                   ? "bg-white text-amber-700 shadow-sm"
                   : "text-stone-500 hover:text-stone-800"
@@ -108,51 +240,81 @@ export default function LeftPanel({
 
       {/* Scrollable Tab Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        {/* TAB 1: PREDEFINED EVENT CONTENT */}
+        {/* ========================================================================= */}
+        {/* TAB 1: ALL EVENT DETAILS */}
+        {/* ========================================================================= */}
         {activeTab === "content" && (
           <div className="space-y-4">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
-                Invitation Details
+                Event Information
               </h3>
               <p className="text-[11px] text-stone-500">
-                Edit core content to update canvas components directly.
+                Edit any field below to immediately update all texts on the invitation.
               </p>
             </div>
 
             {/* Event Title */}
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Event Title</label>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Occasion / Event Title</label>
               <input
                 type="text"
                 value={invitation.title || ""}
-                onChange={(e) => handleTextContentChange("title", e.target.value)}
+                onChange={(e) => {
+                  onUpdateField("title", e.target.value);
+                  handleTextContentChange("title", e.target.value);
+                  handleTextContentChange("event_title", e.target.value);
+                }}
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
 
-            {/* Couple / Names */}
+            {/* Celebrants / Bride & Groom */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Bride / Primary</label>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">Bride / First Name</label>
                 <input
                   type="text"
                   placeholder="Bride's Name"
-                  defaultValue="Ananya"
+                  value={getFieldValue("bride_name", "")}
                   onChange={(e) => handleTextContentChange("bride_name", e.target.value)}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Groom / Secondary</label>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">Groom / Second Name</label>
                 <input
                   type="text"
                   placeholder="Groom's Name"
-                  defaultValue="Arjun"
+                  value={getFieldValue("groom_name", "")}
                   onChange={(e) => handleTextContentChange("groom_name", e.target.value)}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
+            </div>
+
+            {/* Combined Names / Celebrant Headline */}
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Couple / Joint Names</label>
+              <input
+                type="text"
+                placeholder="e.g. Ananya & Arjun"
+                value={getFieldValue("couple_names", "")}
+                onChange={(e) => handleTextContentChange("couple_names", e.target.value)}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Intro / Welcome Tagline */}
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Welcome / Intro Tagline</label>
+              <input
+                type="text"
+                placeholder="e.g. Together with their parents, request the pleasure of your company"
+                value={getFieldValue("event_subtitle", "")}
+                onChange={(e) => handleTextContentChange("event_subtitle", e.target.value)}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+              />
             </div>
 
             {/* Date & Time */}
@@ -162,7 +324,11 @@ export default function LeftPanel({
                 <input
                   type="date"
                   value={invitation.eventDate ? invitation.eventDate.split("T")[0] : ""}
-                  onChange={(e) => onUpdateField("eventDate", new Date(e.target.value).toISOString())}
+                  onChange={(e) => {
+                    const newIso = new Date(e.target.value).toISOString();
+                    onUpdateField("eventDate", newIso);
+                    handleTextContentChange("event_date", e.target.value);
+                  }}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
@@ -170,9 +336,12 @@ export default function LeftPanel({
                 <label className="block text-xs font-semibold text-stone-700 mb-1">Event Time</label>
                 <input
                   type="text"
-                  value={invitation.eventTime || ""}
-                  placeholder="5:00 PM onwards"
-                  onChange={(e) => handleTextContentChange("event_time", e.target.value)}
+                  value={invitation.eventTime || getFieldValue("event_time", "")}
+                  placeholder="e.g. 5:00 PM onwards"
+                  onChange={(e) => {
+                    onUpdateField("eventTime", e.target.value);
+                    handleTextContentChange("event_time", e.target.value);
+                  }}
                   className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
                 />
               </div>
@@ -183,8 +352,8 @@ export default function LeftPanel({
               <label className="block text-xs font-semibold text-stone-700 mb-1">Venue Name</label>
               <input
                 type="text"
-                value={invitation.venueName || ""}
-                placeholder="The Grand Palace"
+                value={invitation.venueName || getFieldValue("venue_name", "")}
+                placeholder="e.g. The Grand Regal Palace"
                 onChange={(e) => {
                   onUpdateField("venueName", e.target.value);
                   handleTextContentChange("venue_name", e.target.value);
@@ -197,8 +366,8 @@ export default function LeftPanel({
               <label className="block text-xs font-semibold text-stone-700 mb-1">Venue Address</label>
               <textarea
                 rows={2}
-                value={invitation.venueAddress || ""}
-                placeholder="Street address, City, State"
+                value={invitation.venueAddress || getFieldValue("venue_address", "")}
+                placeholder="e.g. Heritage Lawns, Lake Palace Road, Udaipur"
                 onChange={(e) => {
                   onUpdateField("venueAddress", e.target.value);
                   handleTextContentChange("venue_address", e.target.value);
@@ -207,13 +376,13 @@ export default function LeftPanel({
               />
             </div>
 
-            {/* Host / Family Note */}
+            {/* Host & Family Note */}
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">Host & Family Note</label>
               <input
                 type="text"
-                value={invitation.hostNames || ""}
-                placeholder="With best compliments from the Family"
+                value={invitation.hostNames || getFieldValue("host_names", "")}
+                placeholder="e.g. With best compliments from Sharma & Verma Families"
                 onChange={(e) => {
                   onUpdateField("hostNames", e.target.value);
                   handleTextContentChange("host_names", e.target.value);
@@ -221,10 +390,243 @@ export default function LeftPanel({
                 className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
               />
             </div>
+
+            {/* Dress Code */}
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Dress Code / Attire</label>
+              <input
+                type="text"
+                placeholder="e.g. Traditional Indian Elegance / Formal Black Tie"
+                value={getFieldValue("dress_code", "")}
+                onChange={(e) => handleTextContentChange("dress_code", e.target.value)}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Quote / Special Message */}
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Inspirational Quote / Note</label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Two souls with but a single thought, two hearts that beat as one."
+                value={getFieldValue("quote", "")}
+                onChange={(e) => handleTextContentChange("quote", e.target.value)}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+              />
+            </div>
           </div>
         )}
 
-        {/* TAB 2: ADD ELEMENTS */}
+        {/* ========================================================================= */}
+        {/* TAB 2: DIRECT CANVAS TEXT LAYERS INSPECTOR */}
+        {/* ========================================================================= */}
+        {activeTab === "layers" && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+                All Canvas Text Elements ({textElements.length})
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                Directly edit every line of text, font size, or color across the entire invitation.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {textElements.map((el, index) => (
+                <div
+                  key={el.id}
+                  className="rounded-2xl border border-stone-200 p-3 bg-stone-50/60 hover:bg-stone-50 transition space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => onSelectElementId(el.id)}
+                      className="text-left font-bold text-xs text-amber-800 hover:underline truncate max-w-[200px]"
+                    >
+                      {el.fieldKey ? `✦ ${el.fieldKey.replace(/_/g, " ")}` : `Text Layer #${index + 1}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteElement(el.id)}
+                      className="p-1 text-stone-400 hover:text-red-600 transition"
+                      title="Delete Text"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={2}
+                    value={el.text || ""}
+                    onChange={(e) => handleUpdateCanvasElementText(el.id, e.target.value)}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-2.5 py-1.5 text-xs focus:border-amber-500 focus:outline-none"
+                  />
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-200/60">
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <span className="text-[10px] text-stone-500">Size:</span>
+                      <input
+                        type="range"
+                        min={12}
+                        max={100}
+                        value={el.fontSize || 24}
+                        onChange={(e) => handleUpdateCanvasElementFontSize(el.id, Number(e.target.value))}
+                        className="w-full accent-amber-600 h-1.5"
+                      />
+                      <span className="text-[10px] font-mono text-stone-600 min-w-[24px]">
+                        {el.fontSize || 24}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[10px] text-stone-500">Color:</span>
+                      <input
+                        type="color"
+                        value={el.color || "#2D261E"}
+                        onChange={(e) => handleUpdateCanvasElementColor(el.id, e.target.value)}
+                        className="h-6 w-6 cursor-pointer rounded-md border border-stone-200 p-0"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleAddText("body")}
+              className="w-full rounded-xl border border-dashed border-stone-300 py-2.5 text-xs font-semibold text-stone-600 hover:border-amber-500 hover:text-amber-700 transition flex items-center justify-center gap-1.5"
+            >
+              <Type className="h-4 w-4" />
+              <span>+ Add New Text Element</span>
+            </button>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: IMAGES & PHOTOS (DEVICE UPLOAD & URL) */}
+        {/* ========================================================================= */}
+        {activeTab === "media" && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+                Photos & Images
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                Replace template photos with couple photos, venue pictures, or custom graphics.
+              </p>
+            </div>
+
+            {/* Upload Buttons */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full rounded-2xl bg-amber-600 py-3 text-xs font-bold text-white shadow hover:bg-amber-700 transition active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Upload Photo from Device</span>
+              </button>
+
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder="Paste Image URL (https://...)"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  className="flex-1 rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddImageFromUrl}
+                  className="rounded-xl bg-stone-900 px-3 py-2 text-xs font-bold text-white hover:bg-stone-800 transition"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* List of Canvas Images */}
+            <div className="space-y-3 pt-2 border-t border-stone-100">
+              <span className="text-[11px] font-bold text-stone-600 uppercase tracking-wider block">
+                Images on Invitation ({imageElements.length})
+              </span>
+
+              {imageElements.length === 0 ? (
+                <div className="rounded-2xl border border-stone-200 p-6 text-center text-xs text-stone-500">
+                  No images currently on canvas. Upload one above to enhance your invitation!
+                </div>
+              ) : (
+                imageElements.map((el) => (
+                  <div
+                    key={el.id}
+                    className="rounded-2xl border border-stone-200 p-3 bg-stone-50/60 space-y-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={el.src}
+                        alt="Canvas visual"
+                        className="h-14 w-14 rounded-xl object-cover border border-stone-300 shadow-xs shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => onSelectElementId(el.id)}
+                          className="text-left font-bold text-xs text-stone-800 hover:text-amber-700 truncate block w-full"
+                        >
+                          {el.fieldKey || el.id}
+                        </button>
+                        <span className="text-[10px] text-stone-400 block">
+                          Size: {el.width} × {el.height}px
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteElement(el.id)}
+                        className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition shrink-0"
+                        title="Delete Image"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Replace Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReplacingElementId(el.id);
+                          replaceFileInputRef.current?.click();
+                        }}
+                        className="flex-1 rounded-xl bg-white border border-stone-200 py-1.5 text-[11px] font-semibold text-stone-700 hover:bg-stone-50 transition flex items-center justify-center gap-1.5 shadow-2xs"
+                      >
+                        <Camera className="h-3.5 w-3.5 text-amber-600" />
+                        <span>Replace File</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = prompt("Enter new image URL:", el.src || "");
+                          if (url && url.trim()) {
+                            handleReplaceImageUrl(el.id, url.trim());
+                          }
+                        }}
+                        className="rounded-xl bg-white border border-stone-200 px-3 py-1.5 text-[11px] font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs"
+                      >
+                        URL
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: ADD ELEMENTS & WIDGETS */}
+        {/* ========================================================================= */}
         {activeTab === "elements" && (
           <div className="space-y-4">
             <div>
@@ -232,7 +634,7 @@ export default function LeftPanel({
               <p className="text-[11px] text-stone-500">Insert new design and interactive components.</p>
             </div>
 
-            {/* Text Types */}
+            {/* Typography */}
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-stone-600 uppercase tracking-wider">Typography</span>
               <div className="grid grid-cols-3 gap-2">
@@ -266,7 +668,7 @@ export default function LeftPanel({
             {/* Interactive Widgets */}
             <div className="space-y-2 pt-2 border-t border-stone-100">
               <span className="text-[11px] font-bold text-stone-600 uppercase tracking-wider">
-                Special Widgets
+                Interactive Components
               </span>
               <div className="space-y-2">
                 <button
@@ -295,7 +697,7 @@ export default function LeftPanel({
                     <Heart className="h-4 w-4 text-amber-600" />
                     <div>
                       <div className="text-xs font-bold text-stone-800">RSVP Action Button</div>
-                      <div className="text-[10px] text-stone-500">Opens guest response form</div>
+                      <div className="text-[10px] text-stone-500">Opens guest confirmation form</div>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-amber-700">+ Add</span>
@@ -350,7 +752,7 @@ export default function LeftPanel({
                     <span className="text-amber-600 text-sm">✦</span>
                     <div>
                       <div className="text-xs font-bold text-stone-800">Decorative Divider</div>
-                      <div className="text-[10px] text-stone-500">Gold sparkle divider flourish</div>
+                      <div className="text-[10px] text-stone-500">Gold sparkle flourish</div>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-amber-700">+ Add</span>
@@ -360,18 +762,20 @@ export default function LeftPanel({
           </div>
         )}
 
-        {/* TAB 3: STYLE & THEME */}
+        {/* ========================================================================= */}
+        {/* TAB 5: STYLE & THEME */}
+        {/* ========================================================================= */}
         {activeTab === "theme" && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">Theme & Colors</h3>
-              <p className="text-[11px] text-stone-500">Customize background atmosphere and accents.</p>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">Theme & Atmosphere</h3>
+              <p className="text-[11px] text-stone-500">Customize card background color and accent colors.</p>
             </div>
 
             {/* Background Color Presets */}
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-2">
-                Card Background
+                Card Background Palette
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {backgroundPresets.map((preset) => (
@@ -397,7 +801,7 @@ export default function LeftPanel({
 
             {/* Theme Accent Color */}
             <div className="pt-2 border-t border-stone-100">
-              <label className="block text-xs font-semibold text-stone-700 mb-2">Accent Color</label>
+              <label className="block text-xs font-semibold text-stone-700 mb-2">Accent Theme Color</label>
               <div className="flex items-center gap-3">
                 <input
                   type="color"
@@ -423,91 +827,44 @@ export default function LeftPanel({
                 />
               </div>
             </div>
-          </div>
-        )}
 
-        {/* TAB 4: WIDGETS & SETTINGS */}
-        {activeTab === "settings" && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+            {/* Interactive Module Toggles */}
+            <div className="pt-3 border-t border-stone-100 space-y-3">
+              <span className="text-[11px] font-bold text-stone-600 uppercase tracking-wider block">
                 Interactive Modules
-              </h3>
-              <p className="text-[11px] text-stone-500">Toggle special components on the public page.</p>
-            </div>
-
-            <div className="space-y-3">
+              </span>
               {[
-                {
-                  key: "enableCountdown",
-                  label: "Countdown Clock",
-                  desc: "Live countdown until event starts",
-                  icon: Sparkles,
-                },
-                {
-                  key: "enableRsvp",
-                  label: "RSVP Response Form",
-                  desc: "Allow guests to confirm attendance",
-                  icon: Heart,
-                },
-                {
-                  key: "enableMap",
-                  label: "Google Maps Navigation",
-                  desc: "Direct link to venue location",
-                  icon: MapPin,
-                },
-                {
-                  key: "enableCalendar",
-                  label: "Add to Calendar",
-                  desc: "Google & Apple calendar sync",
-                  icon: Calendar,
-                },
-                {
-                  key: "enableGallery",
-                  label: "Photo Memories Gallery",
-                  desc: "Showcase event photos with lightbox",
-                  icon: ImageIcon,
-                },
-                {
-                  key: "enableMusic",
-                  label: "Ambient Music Player",
-                  desc: "Gentle celebration audio playback",
-                  icon: Music,
-                },
-              ].map((item) => {
-                const Icon = item.icon;
-                const isChecked = (invitation.settings as any)?.[item.key] ?? false;
+                { key: "enableCountdown", label: "Countdown Clock", desc: "Live countdown timer", icon: Sparkles },
+                { key: "enableRsvp", label: "RSVP Response Form", desc: "Allow guests to respond", icon: Heart },
+                { key: "enableMap", label: "Google Maps Navigation", desc: "Directions to venue", icon: MapPin },
+                { key: "enableCalendar", label: "Add to Calendar", desc: "Google / Apple / Outlook calendar", icon: Calendar },
+                { key: "enableGallery", label: "Guest Photo Gallery", desc: "Photo album on public page", icon: ImageIcon },
+              ].map(({ key, label, desc, icon: Icon }) => {
+                const isEnabled = (invitation.settings as any)?.[key] !== false;
                 return (
-                  <div
-                    key={item.key}
-                    className="flex items-center justify-between p-3 rounded-2xl border border-stone-200 bg-stone-50/50"
+                  <label
+                    key={key}
+                    className="flex items-center justify-between rounded-xl border border-stone-200 p-3 hover:bg-stone-50 cursor-pointer transition"
                   >
-                    <div className="flex items-start gap-2.5 pr-2">
-                      <Icon className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+                    <div className="flex items-center gap-2.5">
+                      <Icon className="h-4 w-4 text-amber-700" />
                       <div>
-                        <div className="text-xs font-semibold text-stone-800">{item.label}</div>
-                        <div className="text-[10px] text-stone-500">{item.desc}</div>
+                        <div className="text-xs font-bold text-stone-800">{label}</div>
+                        <div className="text-[10px] text-stone-500">{desc}</div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
+                    <input
+                      type="checkbox"
+                      checked={isEnabled}
+                      onChange={(e) =>
                         onUpdateField("settings", {
                           ...invitation.settings,
-                          [item.key]: !isChecked,
+                          [key]: e.target.checked,
                         })
                       }
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        isChecked ? "bg-amber-600" : "bg-stone-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          isChecked ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
+                      className="h-4 w-4 rounded accent-amber-600"
+                    />
+                  </label>
                 );
               })}
             </div>

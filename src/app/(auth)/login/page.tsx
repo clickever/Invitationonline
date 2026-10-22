@@ -12,7 +12,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams?.get("redirect") || "/dashboard";
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -23,9 +23,9 @@ function LoginForm() {
     setErrorMsg(null);
 
     try {
-      if (isSupabaseConfigured() && supabase) {
+      if (isSupabaseConfigured() && supabase && identifier.includes("@")) {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: identifier,
           password,
         });
         if (error) {
@@ -36,7 +36,7 @@ function LoginForm() {
       }
 
       // Local persistent authentication
-      const result = loginUser(email, password);
+      const result = loginUser(identifier, password);
       if (!result.success) {
         setErrorMsg(result.error || "Login failed");
         setLoading(false);
@@ -65,7 +65,7 @@ function LoginForm() {
             </span>
           </Link>
           <h2 className="font-serif text-2xl font-bold text-stone-900 pt-1">Welcome Back</h2>
-          <p className="text-xs text-stone-500">Sign in with your email to access your invitations and RSVPs.</p>
+          <p className="text-xs text-stone-500">Sign in with your email or mobile number to access your invitations.</p>
         </div>
 
         {/* Error Alert */}
@@ -78,15 +78,17 @@ function LoginForm() {
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">Email Address *</label>
+            <label className="block text-xs font-semibold text-stone-700 mb-1">
+              Email Address or Mobile Number *
+            </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
               <input
-                type="email"
+                type="text"
                 required
-                placeholder="youremail@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com or 9876543210"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 py-2.5 pl-10 pr-4 text-xs focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-stone-50/50"
               />
             </div>

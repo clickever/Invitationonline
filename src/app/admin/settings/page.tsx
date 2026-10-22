@@ -18,14 +18,14 @@ export default function AdminSettingsPage() {
   const [upiId, setUpiId] = useState("invitestudio@upi");
   const [payeeName, setPayeeName] = useState("InviteStudio Payments");
   const [defaultPrice, setDefaultPrice] = useState(1100);
-  const [adminPin, setAdminPin] = useState("admin123");
+  const [adminPin, setAdminPin] = useState("Nithin@fxodigital");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
     const current = getAdminSettings();
     setUpiId(current.upiId || "invitestudio@upi");
     setDefaultPrice(current.defaultPrice || current.defaultPublicationPrice || 1100);
-    setAdminPin(current.adminPin || "admin123");
+    setAdminPin(current.adminPin || "Nithin@fxodigital");
   }, []);
 
   const handleSave = (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ export default function AdminSettingsPage() {
       payeeName: payeeName.trim(),
       defaultPrice: Number(defaultPrice) || 1100,
       defaultPublicationPrice: Number(defaultPrice) || 1100,
-      adminPin: adminPin.trim() || "admin123",
+      adminPin: adminPin.trim() || "Nithin@fxodigital",
       updatedAt: new Date().toISOString(),
     };
     saveAdminSettings(updated);

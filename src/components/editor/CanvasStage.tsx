@@ -220,7 +220,11 @@ export default function CanvasStage({
         <img
           src={el.src || "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80"}
           alt="Canvas graphic"
-          className="w-full h-full object-cover rounded-2xl pointer-events-none"
+          className="w-full h-full object-cover pointer-events-none"
+          style={{
+            borderRadius: el.borderRadius !== undefined ? `${el.borderRadius}px` : "16px",
+            opacity: el.opacity ?? 1,
+          }}
         />
       );
     }

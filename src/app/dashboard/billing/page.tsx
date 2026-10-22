@@ -1,23 +1,35 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CreditCard, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/storage";
 import { MockPaymentProvider } from "@/lib/payments/mock";
 
 export default function BillingPage() {
-  const user = getCurrentUser();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [upgraded, setUpgraded] = useState(false);
 
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (!u) {
+      router.push("/login?redirect=/dashboard/billing");
+    } else {
+      setUser(u);
+    }
+  }, [router]);
+
   const handleMockUpgrade = async () => {
+    if (!user) return;
     const provider = new MockPaymentProvider();
     const order = await provider.createOrder({
       planId: "pro_pass",
       amount: 49,
       currency: "USD",
-      userEmail: user?.email || "demo@invitestudio.app",
-      userName: user?.fullName || "Sarah Jenkins",
+      userEmail: user.email,
+      userName: user.fullName,
     });
     const verified = await provider.verifyPayment({
       orderId: order.orderId,

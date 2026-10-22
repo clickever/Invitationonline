@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { 
   Type, 
   Trash2, 
@@ -11,8 +11,11 @@ import {
   Bold, 
   Italic, 
   Layers, 
-  X,
-  Sliders
+  X, 
+  Sliders,
+  Image as ImageIcon,
+  Upload,
+  Camera
 } from "lucide-react";
 import { CanvasElement } from "@/lib/types";
 
@@ -52,6 +55,20 @@ export default function PropertiesPanel({
   onDuplicateElement,
   onClose,
 }: PropertiesPanelProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedElement) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      onUpdateElement({ ...selectedElement, src: dataUrl });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   if (!selectedElement) {
     return (
       <aside className="w-72 border-l border-stone-200 bg-white flex flex-col shrink-0 z-20 p-6 text-center justify-center text-stone-400 h-[calc(100vh-4rem)]">
@@ -69,6 +86,7 @@ export default function PropertiesPanel({
   const isText = selectedElement.type === "text";
   const isButton = selectedElement.type === "button";
   const isShape = selectedElement.type === "shape" || selectedElement.type === "divider";
+  const isImage = selectedElement.type === "image";
 
   return (
     <aside className="w-72 border-l border-stone-200 bg-white flex flex-col shrink-0 z-20 h-[calc(100vh-4rem)] overflow-hidden">
@@ -353,6 +371,98 @@ export default function PropertiesPanel({
                     onUpdateElement({ ...selectedElement, strokeColor: e.target.value })
                   }
                   className="w-24 rounded-lg border border-stone-200 px-2 py-1 text-xs font-mono uppercase"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* IMAGE PROPERTIES */}
+        {isImage && (
+          <div className="space-y-4">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageFileChange}
+            />
+
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-2">Image Preview</label>
+              <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-stone-200 bg-stone-50 shadow-inner">
+                <img
+                  src={selectedElement.src || "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80"}
+                  alt="Selected"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full rounded-xl bg-amber-600 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition flex items-center justify-center gap-2"
+            >
+              <Camera className="h-4 w-4" />
+              <span>Replace Photo from Device</span>
+            </button>
+
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Image URL</label>
+              <input
+                type="url"
+                value={selectedElement.src || ""}
+                onChange={(e) => onUpdateElement({ ...selectedElement, src: e.target.value })}
+                placeholder="https://..."
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Corner Radius */}
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1.5">Corner Radius</label>
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                {[
+                  { label: "Square", val: 0 },
+                  { label: "Soft", val: 16 },
+                  { label: "Round", val: 32 },
+                  { label: "Circle", val: 500 },
+                ].map(({ label, val }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => onUpdateElement({ ...selectedElement, borderRadius: val })}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold border transition ${
+                      selectedElement.borderRadius === val || (!selectedElement.borderRadius && val === 16)
+                        ? "bg-amber-100 text-amber-900 border-amber-300 font-bold"
+                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dimensions */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">Width (px)</label>
+                <input
+                  type="number"
+                  value={selectedElement.width || 400}
+                  onChange={(e) => onUpdateElement({ ...selectedElement, width: Number(e.target.value) })}
+                  className="w-full rounded-xl border border-stone-200 px-2 py-1.5 text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">Height (px)</label>
+                <input
+                  type="number"
+                  value={selectedElement.height || 400}
+                  onChange={(e) => onUpdateElement({ ...selectedElement, height: Number(e.target.value) })}
+                  className="w-full rounded-xl border border-stone-200 px-2 py-1.5 text-xs font-mono"
                 />
               </div>
             </div>

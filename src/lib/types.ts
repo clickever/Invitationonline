@@ -177,6 +177,8 @@ export interface InvitationSettings {
   // Palace luxury template fields
   layoutStyle?: 'standard' | 'palace';
   palaceVariant?: 'burgundy' | 'emerald' | 'rosegold' | 'sapphire';
+  brideName?: string;
+  groomName?: string;
   symbol?: string;
   familyHostName?: string;
   ceremonyName?: string;

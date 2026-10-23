@@ -208,7 +208,19 @@ export async function getInvitationBySlug(slug: string): Promise<Invitation | nu
   }
 
   const all = await getAllUserInvitations();
-  return all.find((item) => item.slug === slug) || null;
+  const found = all.find((item) => item.slug === slug);
+  if (found) return found;
+
+  // Fallback check in guest drafts
+  try {
+    const drafts = getLocalItem<Record<string, Invitation>>("invitestudio_guest_drafts", {});
+    const draftFound = Object.values(drafts || {}).find((d) => d.slug === slug);
+    if (draftFound) return draftFound;
+  } catch (e) {
+    // Ignore
+  }
+
+  return null;
 }
 
 export async function saveInvitation(invitation: Invitation): Promise<Invitation> {

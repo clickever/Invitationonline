@@ -91,7 +91,7 @@ export default function PreviewModal({
               : "max-w-2xl my-4 rounded-3xl overflow-hidden shadow-2xl"
           }`}
         >
-          <PublicInvitationRenderer invitation={invitation} />
+          <PublicInvitationRenderer invitation={invitation} isModal={true} />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Eye, FileText } from "lucide-react";
+import { Loader2, Eye, FileText, Sparkles, Sliders } from "lucide-react";
 import { CanvasElement, Invitation } from "@/lib/types";
 import { 
   getInvitationById, 
@@ -21,6 +21,7 @@ import MobileToolbar from "@/components/editor/MobileToolbar";
 import PreviewModal from "@/components/editor/PreviewModal";
 import ShareModal from "@/components/invitation/ShareModal";
 import PublishCheckoutModal from "@/components/payments/PublishCheckoutModal";
+import PalaceInvitationRenderer from "@/components/invitation/PalaceInvitationRenderer";
 
 export default function VisualEditorPage() {
   const params = useParams();
@@ -38,6 +39,7 @@ export default function VisualEditorPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<"canvas" | "form">("canvas");
   const [mobileSheet, setMobileSheet] = useState<"menu" | "properties" | null>(null);
+  const [palaceViewMode, setPalaceViewMode] = useState<"interactive" | "canvas">("interactive");
 
   // Undo / Redo History Stack
   const [history, setHistory] = useState<Invitation[]>([]);
@@ -337,6 +339,10 @@ export default function VisualEditorPage() {
 
   const selectedElement = (invitation.elements || []).find((el) => el.id === selectedElementId) || null;
   const publicShareUrl = typeof window !== "undefined" ? `${window.location.origin}/i/${invitation.slug}` : `/i/${invitation.slug}`;
+  const isPalaceTemplate = 
+    invitation.templateId?.startsWith("wedding-palace") ||
+    invitation.settings?.layoutStyle === "palace" ||
+    invitation.title?.toLowerCase().includes("palace");
 
   return (
     <div className="h-screen flex flex-col bg-stone-100 overflow-hidden">
@@ -411,17 +417,72 @@ export default function VisualEditorPage() {
           />
         </div>
 
-        {/* Center Interactive Canvas Stage (Desktop always, Mobile when in canvas mode) */}
-        <div className={`${mobileTab === "canvas" ? "flex flex-1" : "hidden lg:flex lg:flex-1"} overflow-hidden h-full`}>
-          <CanvasStage
-            invitation={invitation}
-            selectedElementId={selectedElementId}
-            onSelectElementId={setSelectedElementId}
-            onUpdateElement={handleUpdateElement}
-            zoom={zoom}
-            onZoomChange={setZoom}
-            onOpenProperties={() => setMobileSheet("properties")}
-          />
+        {/* Center Interactive Canvas / Palace Stage (Desktop always, Mobile when in canvas mode) */}
+        <div className={`${mobileTab === "canvas" ? "flex flex-1" : "hidden lg:flex lg:flex-1"} overflow-hidden h-full flex-col`}>
+          {isPalaceTemplate ? (
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-stone-950">
+              {/* Palace Mode Top Bar */}
+              <div className="bg-stone-900 border-b border-stone-800 px-4 py-2 flex items-center justify-between shrink-0 z-20">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-xs font-bold text-stone-200">
+                    {palaceViewMode === "interactive" ? "Live Interactive Palace View" : "Palace Canvas Stage"}
+                  </span>
+                </div>
+                <div className="flex items-center bg-stone-800 p-0.5 rounded-xl border border-stone-700">
+                  <button
+                    type="button"
+                    onClick={() => setPalaceViewMode("interactive")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      palaceViewMode === "interactive" ? "bg-amber-600 text-white shadow-xs" : "text-stone-400 hover:text-white"
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Interactive View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPalaceViewMode("canvas")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      palaceViewMode === "canvas" ? "bg-amber-600 text-white shadow-xs" : "text-stone-400 hover:text-white"
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Raw Canvas</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Palace Body */}
+              {palaceViewMode === "interactive" ? (
+                <div className="flex-1 overflow-y-auto flex justify-center items-start p-0 sm:p-6 bg-stone-950">
+                  <div className="w-full max-w-[430px] my-0 sm:my-3 shadow-2xl rounded-none sm:rounded-[36px] overflow-hidden border-0 sm:border-4 sm:border-stone-800">
+                    <PalaceInvitationRenderer invitation={invitation} />
+                  </div>
+                </div>
+              ) : (
+                <CanvasStage
+                  invitation={invitation}
+                  selectedElementId={selectedElementId}
+                  onSelectElementId={setSelectedElementId}
+                  onUpdateElement={handleUpdateElement}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  onOpenProperties={() => setMobileSheet("properties")}
+                />
+              )}
+            </div>
+          ) : (
+            <CanvasStage
+              invitation={invitation}
+              selectedElementId={selectedElementId}
+              onSelectElementId={setSelectedElementId}
+              onUpdateElement={handleUpdateElement}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              onOpenProperties={() => setMobileSheet("properties")}
+            />
+          )}
         </div>
 
         {/* Right Properties Panel (Desktop) */}

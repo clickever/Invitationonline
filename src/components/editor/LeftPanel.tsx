@@ -262,7 +262,13 @@ export default function LeftPanel({
       if (el.fieldKey === "couple_names" || el.id === "couple_names") return { ...el, text: coupleText };
       return el;
     });
-    updateAtomic({ elements: updatedElements });
+    updateAtomic({ 
+      settings: {
+        ...invitation.settings,
+        brideName: newBride,
+      },
+      elements: updatedElements 
+    });
   };
 
   const handleGroomNameChange = (newGroom: string) => {
@@ -273,7 +279,13 @@ export default function LeftPanel({
       if (el.fieldKey === "couple_names" || el.id === "couple_names") return { ...el, text: coupleText };
       return el;
     });
-    updateAtomic({ elements: updatedElements });
+    updateAtomic({ 
+      settings: {
+        ...invitation.settings,
+        groomName: newGroom,
+      },
+      elements: updatedElements 
+    });
   };
 
   // 6. Event Date Atomic Handler

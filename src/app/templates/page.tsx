@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getAllTemplates, CATEGORIES } from "@/lib/templates";
 import { Template } from "@/lib/types";
+import DigitalInvitationCardPreview from "@/components/templates/DigitalInvitationCardPreview";
 
 function TemplateGalleryContent() {
   const searchParams = useSearchParams();
@@ -181,13 +182,9 @@ function TemplateGalleryContent() {
                 key={template.id}
                 className="group relative rounded-3xl bg-white overflow-hidden shadow-card border border-stone-200/80 hover:border-amber-400 transition-all duration-300 flex flex-col justify-between"
               >
-                {/* Image / Thumbnail */}
+                {/* Digital Invitation Card Preview */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
-                  <img
-                    src={template.thumbnailUrl}
-                    alt={template.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <DigitalInvitationCardPreview template={template} />
 
                   {/* Top Badges */}
                   <div className="absolute top-4 left-4 flex items-center gap-1.5 flex-wrap">
@@ -295,11 +292,9 @@ function TemplateGalleryContent() {
               </div>
 
               <div className="p-6 text-center space-y-4 max-h-[70vh] overflow-y-auto">
-                <img
-                  src={previewTemplate.thumbnailUrl}
-                  alt={previewTemplate.name}
-                  className="rounded-2xl max-h-96 w-full object-cover shadow-sm mx-auto"
-                />
+                <div className="relative aspect-[4/5] max-h-96 w-full max-w-xs mx-auto rounded-2xl overflow-hidden shadow-lg border border-stone-200">
+                  <DigitalInvitationCardPreview template={previewTemplate} />
+                </div>
                 <p className="text-xs text-stone-600 leading-relaxed max-w-md mx-auto">
                   {previewTemplate.description}
                 </p>

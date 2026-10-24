@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { getAllTemplates, CATEGORIES } from "@/lib/templates";
 import { Template } from "@/lib/types";
+import DigitalInvitationCardPreview from "@/components/templates/DigitalInvitationCardPreview";
 
 export default function LandingPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -286,13 +287,9 @@ export default function LandingPage() {
                 key={template.id}
                 className="group relative rounded-3xl bg-white overflow-hidden shadow-card border border-stone-200/80 hover:border-amber-400 transition-all duration-300 hover:-translate-y-1"
               >
-                {/* Image / Thumbnail Container */}
+                {/* Digital Invitation Card Preview Container */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
-                  <img
-                    src={template.thumbnailUrl}
-                    alt={template.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <DigitalInvitationCardPreview template={template} />
 
                   {/* Badge */}
                   <div className="absolute top-4 left-4 flex gap-2">

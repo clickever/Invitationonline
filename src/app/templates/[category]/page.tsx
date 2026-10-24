@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, ArrowRight } from "lucide-react";
 import { getTemplatesByCategory, CATEGORIES } from "@/lib/templates";
+import DigitalInvitationCardPreview from "@/components/templates/DigitalInvitationCardPreview";
 
 export default function CategoryTemplatesPage() {
   const params = useParams();
@@ -57,11 +58,7 @@ export default function CategoryTemplatesPage() {
                 className="group rounded-3xl bg-white overflow-hidden shadow-card border border-stone-200/80 hover:border-amber-400 transition-all flex flex-col justify-between"
               >
                 <div className="relative aspect-[4/5] bg-stone-100 overflow-hidden">
-                  <img
-                    src={template.thumbnailUrl}
-                    alt={template.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <DigitalInvitationCardPreview template={template} />
                   <div className="absolute top-4 left-4 flex items-center gap-1.5 flex-wrap">
                     {template.tags?.includes("envelope") && (
                       <span className="rounded-full bg-rose-950/85 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-200 border border-rose-400/30">

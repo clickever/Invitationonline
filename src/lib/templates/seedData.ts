@@ -1199,7 +1199,7 @@ export const SEED_TEMPLATES: Template[] = [
     description: "Romantic botanical illustrations, soft dusty rose tones, and sweeping calligraphy.",
     isPremium: true,
     price: 1100,
-    thumbnailUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80",
+    thumbnailUrl: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=600&q=80",
     canvas: { width: 1080, height: 1920 },
     background: { type: "color", value: "#FFF8F7" },
     themeColors: {

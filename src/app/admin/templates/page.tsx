@@ -19,6 +19,7 @@ import {
   deleteCustomTemplate 
 } from "@/lib/supabase/storage";
 import { Template } from "@/lib/types";
+import DigitalInvitationCardPreview from "@/components/templates/DigitalInvitationCardPreview";
 
 export default function AdminTemplatesPricingPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -105,11 +106,9 @@ export default function AdminTemplatesPricingPage() {
                   <tr key={template.id} className="hover:bg-stone-850/50 transition">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={template.thumbnailUrl}
-                          alt={template.name}
-                          className="h-12 w-10 rounded-lg object-cover shadow-xs border border-stone-800 shrink-0"
-                        />
+                        <div className="h-12 w-10 rounded-lg overflow-hidden shadow-xs border border-stone-800 shrink-0">
+                          <DigitalInvitationCardPreview template={template} showBadge={false} />
+                        </div>
                         <div className="min-w-0">
                           <div className="font-semibold text-white truncate max-w-[200px]">
                             {template.name}

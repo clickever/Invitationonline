@@ -10,7 +10,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams?.get("redirect") || "/dashboard";
+  const redirect = searchParams?.get("redirect") || "/dashboard/invitations";
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -121,7 +121,7 @@ function LoginForm() {
 
         <div className="pt-2 text-center text-xs text-stone-500">
           Don&apos;t have an account yet?{" "}
-          <Link href={`/register${redirect !== "/dashboard" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} className="font-bold text-amber-700 hover:text-amber-900">
+          <Link href={`/register${redirect !== "/dashboard/invitations" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} className="font-bold text-amber-700 hover:text-amber-900">
             Create an account
           </Link>
         </div>

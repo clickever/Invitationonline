@@ -55,9 +55,6 @@ export default function Navbar() {
             <span className="font-serif text-2xl font-bold tracking-tight text-stone-900">
               Invite<span className="text-amber-700">Studio</span>
             </span>
-            <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-              SaaS
-            </span>
           </div>
         </Link>
 
@@ -123,14 +120,6 @@ export default function Navbar() {
           >
             Pricing
           </Link>
-          <Link
-            href="/dashboard"
-            className={`text-sm font-medium transition-colors hover:text-amber-700 ${
-              pathname?.startsWith("/dashboard") ? "text-amber-700 font-semibold" : "text-stone-600"
-            }`}
-          >
-            Dashboard
-          </Link>
         </nav>
 
         {/* Action CTAs & Profile */}
@@ -150,7 +139,7 @@ export default function Navbar() {
                 className="flex items-center gap-2 rounded-full border border-amber-200 bg-white p-1 pr-3 hover:border-amber-400 transition"
               >
                 <img
-                  src={user.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"}
+                  src={user.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.fullName || "User")}`}
                   alt={user.fullName}
                   className="h-8 w-8 rounded-full object-cover"
                 />
@@ -167,14 +156,6 @@ export default function Navbar() {
                     <p className="text-[11px] text-stone-500 truncate">{user.email}</p>
                   </div>
                   <Link
-                    href="/dashboard"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-stone-700 rounded-xl hover:bg-stone-50"
-                  >
-                    <LayoutDashboard className="h-4 w-4 text-amber-600" />
-                    <span>Dashboard</span>
-                  </Link>
-                  <Link
                     href="/dashboard/invitations"
                     onClick={() => setUserDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-stone-700 rounded-xl hover:bg-stone-50"
@@ -188,7 +169,7 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-stone-700 rounded-xl hover:bg-stone-50"
                   >
                     <User className="h-4 w-4 text-amber-600" />
-                    <span>Profile & Plan</span>
+                    <span>My Profile</span>
                   </Link>
                   <button
                     onClick={handleSignOut}
@@ -253,13 +234,6 @@ export default function Navbar() {
             >
               Pricing
             </Link>
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-base font-semibold text-stone-800 rounded-lg hover:bg-amber-50"
-            >
-              My Dashboard
-            </Link>
           </div>
 
           <div className="pt-4 border-t border-stone-200">
@@ -267,7 +241,7 @@ export default function Navbar() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3 px-3 py-2">
                   <img
-                    src={user.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"}
+                    src={user.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.fullName || "User")}`}
                     alt={user.fullName}
                     className="h-10 w-10 rounded-full object-cover"
                   />
@@ -282,6 +256,13 @@ export default function Navbar() {
                   className="block px-3 py-2 text-sm font-medium text-stone-700 rounded-lg hover:bg-amber-50"
                 >
                   My Invitations
+                </Link>
+                <Link
+                  href="/dashboard/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-3 py-2 text-sm font-medium text-stone-700 rounded-lg hover:bg-amber-50"
+                >
+                  My Profile
                 </Link>
                 <button
                   onClick={handleSignOut}

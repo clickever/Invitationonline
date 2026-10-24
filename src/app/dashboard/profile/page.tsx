@@ -38,7 +38,7 @@ export default function ProfilePage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="font-serif text-3xl font-bold text-stone-900">Profile & Preferences</h1>
-        <p className="text-xs text-stone-500">Manage your creator profile and subscription tier.</p>
+        <p className="text-xs text-stone-500">Manage your creator profile and account details.</p>
       </div>
 
       {saved && (
@@ -52,7 +52,7 @@ export default function ProfilePage() {
       <div className="rounded-3xl bg-white p-6 sm:p-8 border border-stone-200 shadow-sm space-y-6">
         <div className="flex items-center gap-4 pb-6 border-b border-stone-100">
           <img
-            src={user?.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"}
+            src={user?.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName || "User")}`}
             alt="Avatar"
             className="h-16 w-16 rounded-full object-cover shadow-sm border border-stone-200"
           />
@@ -60,7 +60,7 @@ export default function ProfilePage() {
             <h3 className="font-serif text-lg font-bold text-stone-900">{fullName || "Host Name"}</h3>
             <p className="text-xs text-stone-500">{email}</p>
             <span className="inline-block mt-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-800">
-              {user?.plan || "Free"} Member
+              Creator Account
             </span>
           </div>
         </div>

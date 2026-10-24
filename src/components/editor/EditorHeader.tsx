@@ -62,7 +62,7 @@ export default function EditorHeader({
         <Link
           href="/dashboard/invitations"
           className="rounded-xl p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition"
-          title="Back to Dashboard"
+          title="Back to My Invitations"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>

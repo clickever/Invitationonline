@@ -5,10 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   Sparkles, 
-  LayoutDashboard, 
   Layers, 
   PlusCircle, 
-  CreditCard, 
   User, 
   LogOut, 
   ExternalLink,
@@ -27,24 +25,39 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const u = getCurrentUser();
-    setUser(u);
-  }, []);
+    if (!u) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname || "/dashboard/invitations")}`);
+    } else {
+      setUser(u);
+      setLoading(false);
+    }
+  }, [pathname, router]);
 
   const handleSignOut = () => {
     setCurrentUser(null);
     router.push("/");
   };
 
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#F5F2EC] flex flex-col items-center justify-center p-6 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-stone-900 shadow mb-4 animate-bounce">
+          <Sparkles className="h-6 w-6" />
+        </div>
+        <p className="text-sm font-semibold text-stone-700">Verifying session...</p>
+      </div>
+    );
+  }
+
   const navItems = [
-    { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { label: "My Invitations", href: "/dashboard/invitations", icon: Layers },
     { label: "Create Invitation", href: "/templates", icon: PlusCircle },
-    { label: "Profile & Plan", href: "/dashboard/profile", icon: User },
-    { label: "Billing", href: "/dashboard/billing", icon: CreditCard },
+    { label: "My Profile", href: "/dashboard/profile", icon: User },
   ];
 
   return (
@@ -95,20 +108,20 @@ export default function DashboardLayout({
           </div>
 
           {/* User Profile Card */}
-          <div className="rounded-2xl bg-amber-50/70 p-3.5 border border-amber-200/60 flex items-center gap-3">
+          <div className="rounded-2xl bg-amber-50/80 p-3.5 border border-amber-200/60 flex items-center gap-3">
             <img
-              src={user?.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80"}
+              src={user.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.fullName || "User")}`}
               alt="Avatar"
-              className="h-10 w-10 rounded-full object-cover shadow-sm"
+              className="h-10 w-10 rounded-full object-cover shadow-sm border border-amber-200"
             />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-stone-900 truncate">
-                {user?.fullName || "Sarah Jenkins"}
+                {user.fullName || user.email}
               </p>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                  {user?.plan || "Free"} Plan
+                  Creator Account
                 </span>
               </div>
             </div>

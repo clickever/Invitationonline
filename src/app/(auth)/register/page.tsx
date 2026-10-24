@@ -10,7 +10,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams?.get("redirect") || "/dashboard";
+  const redirect = searchParams?.get("redirect") || "/dashboard/invitations";
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -98,7 +98,7 @@ function RegisterForm() {
               <input
                 type="text"
                 required
-                placeholder="Sarah Jenkins"
+                placeholder="Full Name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 py-2.5 pl-10 pr-4 text-xs focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-stone-50/50"
@@ -164,7 +164,7 @@ function RegisterForm() {
 
         <div className="pt-2 text-center text-xs text-stone-500">
           Already have an account?{" "}
-          <Link href={`/login${redirect !== "/dashboard" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} className="font-bold text-amber-700 hover:text-amber-900">
+          <Link href={`/login${redirect !== "/dashboard/invitations" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} className="font-bold text-amber-700 hover:text-amber-900">
             Sign in
           </Link>
         </div>

@@ -93,13 +93,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="hover:text-amber-700 transition">
-                  Creator Dashboard
-                </Link>
-              </li>
-              <li>
                 <Link href="/dashboard/invitations" className="hover:text-amber-700 transition">
-                  RSVP Manager
+                  My Invitations
                 </Link>
               </li>
             </ul>
@@ -117,7 +112,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-amber-900/10 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-4">
-          <p>© {new Date().getFullYear()} InviteStudio SaaS Inc. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} InviteStudio. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <span>Privacy Policy</span>
             <span>Terms of Service</span>

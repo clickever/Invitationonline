@@ -357,7 +357,7 @@ export default function PublishCheckoutModal({
                       <input
                         type="text"
                         required
-                        placeholder="Sarah Jenkins"
+                        placeholder="Full Name"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className="w-full rounded-xl border border-stone-200 py-2.5 pl-10 pr-4 text-xs focus:border-amber-500 focus:outline-none bg-stone-50/50"
